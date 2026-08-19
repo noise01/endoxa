@@ -1,4 +1,4 @@
-"""Controlled vocabulary for belief/memory provenance (RFC-0011 Stage 1, ADR-0023).
+"""Controlled vocabulary for belief/memory provenance (Stage 1).
 
 Before this increment ``BeliefNode.source`` mixed two unrelated concerns in one
 field: the *origin kind* of a belief (who asserted it) and the *retrieval
@@ -30,7 +30,7 @@ SOURCE_KINDS = frozenset(
 # changing who originally asserted it. Distinct from SOURCE_KINDS: these
 # describe *how* a node reappeared, not *who* it came from. "conflict_check"
 # is the reversal-conflict restore that pages a user belief back in to compare
-# against a contradicting assertion (ADR-0042).
+# against a contradicting assertion.
 RETRIEVAL_KINDS = frozenset({"read_through", "spreading_activation", "conflict_check"})
 
 # Belief-node property keys that are fixed at birth and never overwritten by

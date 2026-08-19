@@ -1,4 +1,4 @@
-"""Reading a belief's footing off its supports (RFC-0064 §3-2, ADR-0131).
+"""Reading a belief's footing off its supports.
 
 A belief that was put on the board by a derivation rests on something. Whether
 it still does is a question about that belief's *supports*, and this module is
@@ -16,12 +16,12 @@ stay at zero. So ``absent`` is its own state and yields ``indeterminate``.
 
 The module takes *resolved states*, never the supports themselves. Deciding
 whether an antecedent is alive means looking at a board, and the kernel does not
-know what a board is (RFC-0028 §2 principle 1). The host resolves; this folds.
+know what a board is (principle 1). The host resolves; this folds.
 That split is also why the support record's shape stays in the host: nothing
 here needs to read it.
 
 **Nothing calls this yet.** Placing the judgement and firing on it are separate
-increments on purpose (RFC-0064 §6): a single increment that did both would
+increments on purpose: a single increment that did both would
 produce measurements consistent with two different explanations, which is the
 mistake ADR-0110 and ADR-0116 each recorded once. Increment 3 writes the
 resolver and decides what an OUT is worth.
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 #: ``alive``: the thing it names still holds. ``dead``: it was refuted or
 #: retracted -- the antecedent flipped false, the rule was retracted, the link
 #: was defeated. ``absent``: it can no longer be found. The last is deliberately
-#: not ``dead``: a paged-out antecedent (ADR-0042) says nothing against what it
+#: not ``dead``: a paged-out antecedent says nothing against what it
 #: once supported, and ADR-0080 known limitation (c) -- that a support lost to
 #: paging is indistinguishable from one that never existed -- is precisely what
 #: keeping this state separate makes measurable.

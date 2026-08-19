@@ -1,4 +1,4 @@
-"""Tests for the ledger's operation schema (RFC-0063 §2, ADR-0119).
+"""Tests for the ledger's operation schema.
 
 The schema carries two promises beyond holding fields: an entry is never edited
 after the fact (frozen), and the schema itself evolves by addition only (RFC-0063
@@ -56,7 +56,7 @@ class TestEntryIsAppendOnly:
 
 
 class TestTheReasonColumn:
-    """A column added the moment it was written (RFC-0065 §3-2, ADR-0135).
+    """A column added the moment it was written.
 
     The other half of what RFC-0063 §6 permits. ``supported_by`` was named in
     advance and filled later, which tested the reservation; ``reason`` was never
@@ -82,7 +82,7 @@ class TestTheReasonColumn:
 
 
 class TestTheSupportSeat:
-    """RFC-0064 increment 4 sat down in the seat RFC-0063 §6 reserved (ADR-0133)."""
+    """RFC-0064 increment 4 sat down in the seat RFC-0063 §6 reserved."""
 
     def test_the_kind_is_carried_not_inferred(self):
         """Both endpoints are strings; only the kind says which board to look on.
@@ -104,7 +104,7 @@ class TestTheSupportSeat:
 
     def test_the_same_support_compares_equal(self):
         # Value equality is what lets the derivation drop a support it already
-        # holds (ADR-0130's "the same derivation running twice is one footing").
+        # holds ("the same derivation running twice is one footing").
         assert SupportRef(kind="rule", ref="ax_1") == SupportRef(kind="rule", ref="ax_1")
         assert SupportRef(kind="rule", ref="ax_1") != SupportRef(kind="derivation", ref="ax_1")
 

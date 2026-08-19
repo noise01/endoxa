@@ -1,4 +1,4 @@
-"""Recovering the ledger from what the host already records (RFC-0063 §4, ADR-0119).
+"""Recovering the ledger from what the host already records.
 
 The intermediate form RFC-0063 §4 chose separates *the source of truth on the
 API* from *the source of truth in the implementation*: the ledger is the former,
@@ -10,12 +10,12 @@ changes; the ledger is a way of reading what already happened.
 **Why the event log and not the current state.** RFC-0063 §4 names "blackboard,
 TMS, evidence counters, trace" as the derivation's inputs, but the current state
 alone cannot yield the series: a retraction is a flip that leaves no trace of
-the flip, and the reconstruction check (RFC-0063 §7 criterion 3) needs a series
+the flip, and the reconstruction check (criterion 3) needs a series
 to reconstruct *from*. The audit log is the only place the host keeps the order
 of what it did, so it is the primary input; the board is what the derived view is
 then checked against (:func:`~doxa.governance.view.compare_to_state`).
 
-**The horizon.** The retention sweep (ADR-0085) prunes by event type, and until
+**The horizon.** The retention sweep prunes by event type, and until
 RFC-0065 increment ② its keep set was the three calibration types plus
 ``MessageReceivedEvent`` -- not a single ledger-bearing type was in it. A host
 running that policy can have had governance operations pruned out from under it,
@@ -26,11 +26,11 @@ time.
 
 **The horizon does not go away now that the sweep keeps these rows.** The host
 took :data:`LEDGER_EVENT_TYPES` into its keep set as a third consumer
-(``domains/memory/retention.py``, RFC-0065 §3-3), which is a measure that acts
+(``domains/memory/retention.py``), which is a measure that acts
 **forward**: runs already swept cannot be un-pruned, and a host is free to
 configure a policy that keeps less (the keep set is an argument, not a law here).
 So the horizon keeps meaning exactly what it meant -- the earliest row this
-derivation could read, which is not a claim of completeness (RFC-0065 §9-3).
+derivation could read, which is not a claim of completeness.
 
 **Reading the host's event names.** An asset may not import
 ``doppelganger.events`` (the import-linter boundary; the asset has to travel to
@@ -40,7 +40,7 @@ string constants. A host-side test pins them against the real classes'
 
 Pure and basis-independent (stdlib only): the input is the raw row shape the
 event store returns, exactly as :func:`~doppelganger.kernel.trace.render_diary`
-takes raw trace rows (ADR-0118 decision 2).
+takes raw trace rows.
 """
 
 from __future__ import annotations
@@ -69,13 +69,13 @@ MEMORY_BATCH_UPDATE_REQUEST = "MemoryBatchUpdateRequestEvent"
 #: read so a diagnostic run does not drag the whole audit log into memory.
 #:
 #: ``BeliefSupportRecordedEvent`` is the odd one: it yields **no operation at
-#: all** (ADR-0133). A derivation reaching a belief already on the board changes
-#: no claim and no credence (ADR-0130), so it is read for the support state it
+#: all**. A derivation reaching a belief already on the board changes
+#: no claim and no credence, so it is read for the support state it
 #: carries and for nothing else -- the first row type here that is state without
 #: being an operation.
 #:
 #: ``BeliefEvidenceBookedEvent`` is the write side breaking its own silence
-#: (RFC-0065 increment 1, ADR-0135). It maps onto exactly the same operations as
+#: (increment 1). It maps onto exactly the same operations as
 #: ``BeliefEvidenceRecordedEvent``; the two are separate classes only because
 #: the board subscribes to the latter, so re-using it would fold the evidence a
 #: second time. The distinction is a host wiring detail, and the derivation is
@@ -93,7 +93,7 @@ LEDGER_EVENT_TYPES: frozenset[str] = frozenset(
 )
 
 #: Property name the board writes its support record under, and the keys of one
-#: record (``domains.blackboard.support``, ADR-0129). String constants for the
+#: record (``domains.blackboard.support``). String constants for the
 #: same reason the event names are: the asset cannot import the host.
 SUPPORTED_BY_KEY = "supported_by"
 _SUPPORT_KIND_KEY = "kind"
@@ -103,7 +103,7 @@ _SUPPORT_REF_KEY = "ref"
 #: by the same host-side test). The response to *this* request is the moment the
 #: rule store's content enters the ledger as beliefs -- RFC-0028 §8 open question
 #: 1 settled: the file/table is host initialization data, its content becomes
-#: governance (RFC-0063 §9 unresolved point 1).
+#: governance (unresolved point 1).
 AXIOM_LOAD_CORRELATION_ID = "reasoning_axiom_load"
 
 #: Memory type of a learned or base rule row.
@@ -224,7 +224,7 @@ class _FoldState:
     a write flipped a belief is only visible against what the series says it held
     (``domains/blackboard/graph_ops.py`` ``add_atom``).
 
-    ``supports`` is the same idea for the support seat (ADR-0133): a belief's
+    ``supports`` is the same idea for the support seat: a belief's
     footing accumulates across rows (a materialisation writes one, a later
     derivation reaching the same belief adds another), and each operation is
     stamped with the set as it stood *at that moment*. Mutable and threaded rather
@@ -290,7 +290,7 @@ def _absorb_support(record: _Record, state: _FoldState) -> None:
     """Fold a ``BeliefSupportRecordedEvent`` into the running support state.
 
     Appended, not replaced, and never duplicated -- mirroring the board's
-    ``add_support`` (ADR-0130): a derivation that runs again over the same pair is
+    ``add_support``: a derivation that runs again over the same pair is
     the same footing, not a second one.
     """
     node_id = str(record.payload.get("node_id", ""))
@@ -307,15 +307,15 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     Four cases, in the order they are tested:
 
     - ``ask_grounding`` -> ``ground``. The ask-user closed loop is the only writer
-      of confidence 1.0 (ADR-0018), so it is its own operation whatever else the
+      of confidence 1.0, so it is its own operation whatever else the
       write does.
     - an unseen belief -> ``assert``. Birth defaults to true, matching ``add_atom``.
     - a flip -> ``retract`` or ``supersede``. **The discriminator is the one the
       board itself uses**: ``runtime/blackboard.py`` re-attributes the belief's
-      evidence to its new claim (``swap_evidence``, ADR-0078) exactly when the
+      evidence to its new claim (``swap_evidence``) exactly when the
       write carries no explicit ``confidence``. A revision flip writes the truth
       value alone; recency supersession restates the confidence to say "the world
-      moved, the belief was not miscalibrated" (ADR-0068, RFC-0039 §6). So the
+      moved, the belief was not miscalibrated". So the
       presence of that key is not a guessed proxy for the distinction -- it *is*
       the host's own test for it.
     - anything else -> ``assert``, a restatement (the host publishes nothing at
@@ -323,7 +323,7 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
 
     A written support record **replaces** what the belief is known to rest on,
     because that is what the board does: ``add_atom`` overwrites the property, so
-    a re-derivation names the antecedent it actually rode on this time (ADR-0129).
+    a re-derivation names the antecedent it actually rode on this time.
     Accumulation is the other writer's job (``_absorb_support``).
     """
     payload = record.payload
@@ -375,14 +375,14 @@ def _evidence_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     evidence before publishing, which is not a governance distinction.
 
     No confidence is carried: the event says only which way the evidence points,
-    and the resulting credence is the Laplace fold the view replays (RFC-0036 §3).
+    and the resulting credence is the Laplace fold the view replays.
 
     This is the operation the support seat was worth filling for. Counter-evidence
-    is booked against a derived belief exactly when its footing goes (ADR-0132),
+    is booked against a derived belief exactly when its footing goes,
     and stamping the entry with what it was resting on at that moment is what lets
     a reader tell "refuted while still supported" from "refuted because the
     support died" -- from the series alone, with no board in hand. The reason
-    (RFC-0065 §3-2) says the same thing from the other side: the support set is
+     says the same thing from the other side: the support set is
     the *state* the booking found, the reason is the *event* that caused it, and
     a reader who has to infer one from the other is guessing again.
     """
@@ -419,7 +419,7 @@ def _reason(value: object) -> EvidenceReason | None:
 def _hold_operations(record: _Record) -> list[LedgerOp]:
     """Map a ``ContradictionTieDetectedEvent`` onto one ``hold`` over the pair.
 
-    One operation, not two: a tie *is* a pair (ADR-0081's ``_TIE_ARITY``), and
+    One operation, not two: a tie *is* a pair (``_TIE_ARITY``), and
     counting it twice would make the ledger's own statistics say the system held
     twice as often as it did. The view marks both members from ``partner``.
 

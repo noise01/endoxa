@@ -1,4 +1,4 @@
-"""Tests for defeasible-rule culprit search (ADR-0072).
+"""Tests for defeasible-rule culprit search.
 
 ``find_rule_culprits`` drops one defeasible rule at a time and asks whether the
 theory turns SAT. Until ADR-0072 the vocabulary-derived ground clauses were not
@@ -64,7 +64,7 @@ class TestGenuineRuleCulprit:
         # Both a rule-forced contradiction (tweety) and a vocabulary clash (alice)
         # are on the board. Dropping the rule leaves alice's clash, so no rule is a
         # culprit -- alice's contradiction is resolved on its own beat by the fact
-        # path (ADR-0064), and the rule stays until its own conflict is the one
+        # path, and the rule stays until its own conflict is the one
         # being examined.
         beliefs = {
             **_clashing_residences(),

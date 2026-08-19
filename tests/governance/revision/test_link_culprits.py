@@ -1,4 +1,4 @@
-"""Tests for acquired-link culprit search (ADR-0074).
+"""Tests for acquired-link culprit search.
 
 ``find_link_culprits`` drops one acquired vocabulary link at a time and asks
 whether the theory turns SAT -- the link-level twin of the rule-culprit search.
@@ -69,7 +69,7 @@ class TestLinkIsInnocent:
 
     def test_functional_exclusion_is_not_a_candidate(self) -> None:
         # The config bootstrap stands in for a link the ritual has not elicited
-        # (ADR-0056) and its clashes are superseded by recency upstream, so it is
+        # and its clashes are superseded by recency upstream, so it is
         # never offered up for retraction.
         beliefs = {
             "lives_in(alice, tokyo)": {"belief_context": "user", "confidence": 1.0, "truth_value": True},

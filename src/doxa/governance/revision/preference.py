@@ -1,4 +1,4 @@
-"""What the revision preference says about a belief, derived in one place (RFC-0043).
+"""What the revision preference says about a belief, derived in one place.
 
 Two selectors read the same preference: :mod:`~doxa.governance.revision.engine`
 picks which belief to retract, and :mod:`~doxa.governance.revision.tie` decides
@@ -12,9 +12,9 @@ identically. Being unsettleable is not the solver failing to decide, it is the
 *preference* failing to decide -- so it is a property of a band, not of a
 confidence value. Confidence 1.0 is then just one band among others, which is
 why ADR-0082 could replace the old "both inviolable" tie gate with band
-equality (ADR-0081 had only the 1.0 case to generalise from).
+equality (had only the 1.0 case to generalise from).
 
-Pure and basis-independent (governance tier, RFC-0028 §7): stdlib only.
+Pure and basis-independent (governance tier): stdlib only.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 # The blackboard stores an atom's role under ``belief_context``: ``add_atom``
 # takes a ``role`` argument and writes it to that key, and ``BeliefNode`` has no
-# ``role`` field at all (ADR-0082). Reading ``role`` here -- as the selectors did
+# ``role`` field at all. Reading ``role`` here -- as the selectors did
 # until RFC-0043 -- therefore never matched in production, leaving the TMS policy
 # of retracting a conjecture before an assertion inert.
 _ROLE_KEY = "belief_context"
@@ -37,24 +37,24 @@ _HYPOTHESIS = "hypothesis"
 # into arbitrary settlement. The tolerance is far below the 0.01-order spacing of
 # real values, so it never merges bands that are meant to be distinct.
 #
-# Known limitation (ADR-0082): banding compares each candidate against its band's
+# Known limitation: banding compares each candidate against its band's
 # first member, so equality is not strictly transitive. Values spaced under the
 # tolerance apart do not occur at the resolution confidence is actually written at.
 _CONFIDENCE_EPSILON = 1e-9
 
 # A belief with no explicit confidence is inviolable: revision fails safe toward
-# not touching an unmarked belief (ADR-0078).
+# not touching an unmarked belief.
 _DEFAULT_CONFIDENCE = 1.0
 
 
 def is_hypothesis(data: dict[str, Any]) -> bool:
     """Whether a belief was put forward as a conjecture rather than asserted.
 
-    Intuition posts its guesses this way (ADR-0013). A hypothesis is the first
+    Intuition posts its guesses this way. A hypothesis is the first
     thing revision reaches for, ahead of an asserted belief of the very same
     confidence -- being offered as a guess is itself a reason to doubt it first.
 
-    Known limitation (ADR-0082): ``belief_context`` is not birth-fixed. It sits
+    Known limitation: ``belief_context`` is not birth-fixed. It sits
     outside the blackboard's provenance-key protection, so a belief rewritten by
     ``_revise_fact`` (which passes ``role="agent"``) stops reading as a
     hypothesis. Making the distinction permanent belongs with the first-class
@@ -90,10 +90,10 @@ def revision_candidates(
     """Return the beliefs in a conflict that may be retracted, in preference order.
 
     A hypothesis is always a candidate; an asserted belief only below confidence
-    1.0, the standing that ask-user grounding confers (ADR-0018, ADR-0078).
+    1.0, the standing that ask-user grounding confers.
 
     The order is ``(band, node_id)``. The **node id is what makes the enumeration
-    deterministic** (ADR-0082): before it, equal-confidence candidates kept the
+    deterministic**: before it, equal-confidence candidates kept the
     order the UNSAT core happened to arrive in, and since Python's sort is stable
     that solver-dependent order decided which belief got retracted. Lexicographic
     order is arbitrary but fixed -- the same discipline, for the same reason, that
@@ -127,7 +127,7 @@ def preference_bands(
 
 
 def is_unsettleable_pair(left: dict[str, Any], right: dict[str, Any]) -> bool:
-    """Whether the preference cannot separate two conflicting beliefs (ADR-0082).
+    """Whether the preference cannot separate two conflicting beliefs.
 
     This is the tie gate. It subsumes the "both inviolable" test it replaced:
     two beliefs at confidence 1.0 share the band ``(True, 1.0)``, so the case

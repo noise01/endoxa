@@ -1,48 +1,34 @@
-"""Belief-governance asset: the ledger, the view derived from it, and the machinery (RFC-0063).
+"""Belief governance: the decision, the ledger, and the machinery underneath.
 
-Asset ② of RFC-0026's four. The governance *machinery* has existed since the
-sixth period -- TMS revision, preference bands, evidence updates, tie questions --
-but scattered across the host's domain modules, which is why "the governance
-layer can be attached to any agent" (RFC-0026 Decision 4) has never been
-testable. This package gives that machinery a public shape:
+Hand this package beliefs and the constraints they live under, and it answers in
+operations -- what to retract, what to hold, what stands. The answer is data
+rather than a mutation: you append it to the ledger and apply it to your own
+store.
 
-- :mod:`~doxa.governance.ledger` declares the seven operations as
-  an append-only schema (RFC-0063 §2).
-- :mod:`~doxa.governance.derive` recovers the operation series
-  from the host's audit log, read-only (RFC-0063 §4's intermediate form: the
-  ledger is the source of truth on the API, the board still is in the
-  implementation).
-- :mod:`~doxa.governance.view` folds the series back into the
-  current view, where an unsettleable tie is finally a state with a name
-  (:data:`~doxa.governance.view.UNRESOLVED`).
-- :mod:`~doxa.governance.resolution` is the decision surface: hand
-  it beliefs and the constraints they live under and it answers in ledger
-  operations (RFC-0063 §5 increment 2). Reading a ledger is not yet being
-  governed; this is what makes an external host governable.
-- :mod:`~doxa.governance.support` reads a belief's footing off
-  what became of its supports (RFC-0064 §3-2): had none, still standing, lost
-  them all, or lost them to a board that no longer holds the antecedent -- the
-  last being why "gone" and "refuted" must not share a name (ADR-0131).
+- :mod:`~doxa.governance.resolution` is the decision surface. Reading a ledger is
+  not yet being governed; this is the part that makes a host governable.
+- :mod:`~doxa.governance.ledger` declares the seven operations as an append-only
+  schema.
+- :mod:`~doxa.governance.derive` recovers the operation series from a host's
+  audit log, read-only.
+- :mod:`~doxa.governance.view` folds the series back into a current view, in
+  which an unsettleable conflict is a state with a name
+  (:data:`~doxa.governance.view.UNRESOLVED`) rather than a silent choice.
+- :mod:`~doxa.governance.support` reads a belief's footing off what became of the
+  things supporting it: it had none, they still stand, they are all gone, or they
+  are gone because the state no longer holds what they rested on. That last case
+  is why "gone" and "refuted" must not share a name.
+- :mod:`~doxa.governance.revision` is the machinery every operation above is
+  decided by -- the consistency check, the culprit searches, the preference
+  ordering, and the detection of a conflict that cannot be settled from inside.
+- :mod:`~doxa.governance.provenance` is the fixed set of names for where a belief
+  came from, and for what brought it back, that the ledger records.
+- :mod:`~doxa.governance.knowledge` names where a belief sits relative to the
+  knowledge boundary.
 
-- :mod:`~doxa.governance.revision` is that machinery itself: the
-  consistency check, the culprit searches, the preference bands and the tie
-  detection every operation above is decided by.
-- :mod:`~doxa.governance.provenance` is the vocabulary of belief
-  origins (which source kind, which retrieval kind) that the ledger records.
-- :mod:`~doxa.governance.knowledge` names where a belief sits
-  relative to the knowledge boundary -- a fact about the belief set, so the
-  schema lives with it while the classifying policy stays in the host
-  (RFC-0026 Decision 4 (c), ADR-0125).
-
-The last two arrived in RFC-0028 Phase 2's final migration (ADR-0125), which is
-what made the boundary statable as one sentence: **the kernel imports nothing
-outside the kernel**, now a single import-linter contract rather than a list of
-forbidden hosts (RFC-0028 §2 principle 1, ADR-0122 decision 3).
-
-They are residents of this namespace, not flattened into it -- the same shape
-``kernel/lib`` and ``kernel/instruments`` took (ADR-0122 decision 1, ADR-0124
-decision 1). What this package's own ``__all__`` exports is the *API*: the ledger
-schema, the derived view, and the decision surface.
+The submodules are residents of this namespace rather than flattened into it.
+What ``__all__`` exports is the API: the ledger schema, the derived view, and the
+decision surface.
 """
 
 from doxa.governance.derive import LEDGER_EVENT_TYPES, DerivedLedger, derive_ledger

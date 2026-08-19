@@ -1,9 +1,9 @@
-"""Deductive belief verification: the pure ``entails`` refutation query (ADR-0017).
+"""Deductive belief verification: the pure ``entails`` refutation query.
 
 ``verify_belief`` grounds a belief by asking whether it is entailed by the
 current beliefs under the active rules. These pure tests exercise that query at
 the domain seam: entailment via a rule, a counter-model, a face-value belief
-excluded from its own proof (ADR-0034), and the inconclusive verdicts (budget
+excluded from its own proof, and the inconclusive verdicts (budget
 cut / unparseable target).
 """
 
@@ -34,12 +34,12 @@ def test_not_entailed_without_premise() -> None:
 
 
 def test_face_value_belief_is_not_self_entailing() -> None:
-    """A belief present only at face value is NOT its own proof (ADR-0034).
+    """A belief present only at face value is NOT its own proof.
 
     The target atom is excluded from the assumptions, so a belief that merely
     sits on the blackboard -- with no rule or other belief deriving it -- is
     NOT_ENTAILED. This is the correction that lets cautious verification
-    (ADR-0030) actually refute an unsupported precondition instead of trusting
+     actually refute an unsupported precondition instead of trusting
     it because it happens to be present.
     """
     beliefs = {"mortal(socrates)": _belief()}
@@ -47,7 +47,7 @@ def test_face_value_belief_is_not_self_entailing() -> None:
 
 
 def test_present_belief_still_entailed_when_derivable() -> None:
-    """A present belief that OTHER beliefs + a rule derive is still ENTAILED (ADR-0034).
+    """A present belief that OTHER beliefs + a rule derive is still ENTAILED.
 
     Excluding the target's own presence does not hide a genuine derivation:
     human(socrates) + the mortal rule entail mortal(socrates) even though it is
@@ -75,14 +75,14 @@ _PHILOSOPHER_RULE = parse_fof("fof(rule_phil, axiom, ![X] : (philosopher(X) => m
 
 
 def test_supporting_rules_names_the_necessary_rule() -> None:
-    """The rule the derivation cannot do without is returned (ADR-0080)."""
+    """The rule the derivation cannot do without is returned."""
     beliefs = {"human(socrates)": _belief()}
     supports = find_supporting_rules(beliefs, [_MORTAL_RULE], [_MORTAL_RULE], "mortal(socrates)")
     assert supports == [_MORTAL_RULE]
 
 
 def test_supporting_rules_empty_when_an_alternative_route_exists() -> None:
-    """Two independent derivations mean no single rule is a support (RFC-0041 §3).
+    """Two independent derivations mean no single rule is a support.
 
     Dropping either rule still leaves the target entailed, so losing one of them
     is not the loss of the belief's footing -- and recording an edge would make a
@@ -106,7 +106,7 @@ def test_supporting_rules_empty_for_an_underivable_target() -> None:
 
 
 def test_supporting_rules_records_nothing_for_an_inconclusive_verdict() -> None:
-    """A budget-cut verdict yields no support edges (RFC-0041 §3).
+    """A budget-cut verdict yields no support edges.
 
     UNKNOWN means the question was never answered; recording an edge on it would
     let the deliberation budget decide which beliefs stay revisable later.

@@ -1,13 +1,13 @@
 """Anytime deliberation budget: bound the E-matching loop in rounds and in work.
 
 The meta-control arbiter caps how many E-matching rounds a slow S2 consistency
-check may spend (ADR-0013). These pure tests exercise the
+check may spend. These pure tests exercise the
 engine/domain seam: a non-terminating matching loop is cut and reported as
 ``"UNKNOWN"``, while well-behaved checks converge unaffected.
 
 ``max_rounds`` alone does not bound a check, because the cap is only tested once
 ``match()`` has returned. A soak run stalled for 64 minutes inside a *single*
-round (RFC-0051 §2 ②), so ``max_matches`` bounds the candidate bindings the
+round, so ``max_matches`` bounds the candidate bindings the
 search may examine. Its tests assert on the engine's own counters rather than on
 wall-clock time, so they stay deterministic and need no ``benchmark`` marker.
 """

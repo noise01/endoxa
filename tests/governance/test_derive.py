@@ -1,11 +1,11 @@
-"""Tests for deriving the ledger from persisted event rows (RFC-0063 §4, ADR-0119).
+"""Tests for deriving the ledger from persisted event rows.
 
 The derivation is a pure asset function, so these run without a store, a DB or an
 LLM. Beyond the mapping itself, three things are guarded:
 
-- **The positive control** (RFC-0063 §7 criterion 4): ``hold``, ``supersede`` and
+- **The positive control** (criterion 4): ``hold``, ``supersede`` and
   ``ground`` are made to actually stand up from hand-built rows. Zero not moving
-  is not a result (ADR-0104, ADR-0112), and these three are exactly the
+  is not a result, and these three are exactly the
   operations a run may go without ever performing.
 - **The retract/supersede discriminator**: the two differ only in whether the
   write stated a confidence, which is the board's own test for whether a flip is
@@ -28,7 +28,7 @@ _T0 = 1_700_000_000.0
 
 
 def _derivation(antecedent_id: str) -> list[dict[str, str]]:
-    """Build the board's support record for a forward-derived consequent (ADR-0129)."""
+    """Build the board's support record for a forward-derived consequent."""
     return [{"kind": "derivation", "ref": antecedent_id}]
 
 
@@ -64,7 +64,7 @@ class TestAtomOperations:
 
     def test_a_flip_without_a_stated_confidence_is_a_retract(self):
         # TMS revision writes the truth value alone and lets the board
-        # re-attribute the evidence (ADR-0078); that silence is the retraction.
+        # re-attribute the evidence; that silence is the retraction.
         rows = [
             _row("AtomAddedEvent", _atom("flammable(bridge)", {"truth_value": True, "confidence": 0.95})),
             _row("AtomAddedEvent", _atom("flammable(bridge)", {"truth_value": False}, role="agent"), event_id="e2"),
@@ -73,7 +73,7 @@ class TestAtomOperations:
 
     def test_a_flip_that_restates_the_confidence_is_a_supersede(self):
         # Recency supersession says the world moved, not that the belief was
-        # miscalibrated, and states the confidence to say so (ADR-0068).
+        # miscalibrated, and states the confidence to say so.
         rows = [
             _row("AtomAddedEvent", _atom("at(bob,home)", {"truth_value": True, "confidence": 0.9})),
             _row(
@@ -125,7 +125,7 @@ class TestEvidenceOperations:
         assert _ops(rows) == [("refute", "mortal(socrates)")]
 
     def test_a_booking_the_board_made_itself_is_the_same_operation(self):
-        """The two evidence event types are one row type here (RFC-0065 増分①, ADR-0135).
+        """The two evidence event types are one row type here.
 
         Which class the host published says whether the board had already folded
         before recording -- a wiring detail of the host's own re-entrancy, not a
@@ -184,7 +184,7 @@ class TestHoldOperations:
 
     def test_the_ask_event_is_not_a_ledger_operation(self):
         # Being unable to settle is the governance layer's judgement; deciding to
-        # ask about it is the host's dialogue policy (ADR-0081 decision 1).
+        # ask about it is the host's dialogue policy.
         rows = [_row("RevisionTieAskEvent", {"node_a": "alive(felix)", "node_b": "dead(felix)"})]
         assert derive_ledger(rows).ops == ()
 
@@ -275,7 +275,7 @@ class TestPositiveControl:
 
 
 class TestTheSupportSeat:
-    """What each operation was resting on, filled from the log (RFC-0064 増分④, ADR-0133)."""
+    """What each operation was resting on, filled from the log."""
 
     def test_a_materialized_derivation_carries_its_antecedent(self):
         rows = [
@@ -288,7 +288,7 @@ class TestTheSupportSeat:
         assert op.supported_by == (SupportRef(kind="derivation", ref="cat(mike)"),)
 
     def test_a_belief_nobody_derived_carries_nothing(self):
-        """97.2% of atoms in vivo (ADR-0128), and the class RFC-0064 §3-2 keeps outside OUT."""
+        """97.2% of atoms in vivo, and the class RFC-0064 §3-2 keeps outside OUT."""
         (op,) = derive_ledger([_row("AtomAddedEvent", _atom("cat(mike)", {"truth_value": True}))]).ops
         assert op.supported_by == ()
 
@@ -375,7 +375,7 @@ class TestTheSupportSeat:
         assert derive_ledger(rows).ops[1].supported_by == (SupportRef(kind="derivation", ref="cat(mike)"),)
 
     def test_a_re_derivation_replaces_what_was_written(self):
-        """``add_atom`` overwrites the property, so the ledger must too (ADR-0129)."""
+        """``add_atom`` overwrites the property, so the ledger must too."""
         rows = [
             _row(
                 "AtomAddedEvent",

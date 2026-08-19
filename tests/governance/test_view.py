@@ -1,14 +1,14 @@
-"""Tests for the view derived from the ledger (RFC-0063 §2, ADR-0119).
+"""Tests for the view derived from the ledger.
 
 What is under test is mostly ``UNRESOLVED``: that a hold puts *both* sides in it,
 that it is released by derivation rather than by an operation of its own
-(RFC-0063 §2 decision 2), and that a grounded answer is what always releases it
+, and that a grounded answer is what always releases it
 -- the synthetic-layer 1.0 rule (``backlog.md`` §6(e)(v), RFC-0023 §6) stated as
 behaviour instead of as a note.
 
 The credence replay is tested for the properties it has to preserve, not for
 particular decimals: an inviolable belief is untouched by evidence, and a flip
-hands the tally to the claim the belief now makes (ADR-0078). The numbers
+hands the tally to the claim the belief now makes. The numbers
 themselves are pinned against the host's own implementation in
 ``tests/doppelganger/test_governance_ledger_contract.py``.
 """
@@ -42,7 +42,7 @@ class TestHeldBeliefs:
         assert state.confidence == 0.9
 
     def test_a_retract_leaves_the_belief_in_the_ledger_with_the_opposite_claim(self):
-        # "It leaves the current view but not the ledger" (RFC-0063 §2): the
+        # "It leaves the current view but not the ledger": the
         # target is still a row here, now claiming the other thing.
         view = reconstruct_view(
             [
@@ -99,7 +99,7 @@ class TestUnresolved:
         assert view["alive(felix)"].status == HELD
 
     def test_a_hypothesis_and_an_assertion_are_never_a_tie_to_begin_with(self):
-        # The band separates them even at equal confidence (ADR-0082 decision 1),
+        # The band separates them even at equal confidence,
         # so a hold over such a pair is released the moment anything touches it.
         ops = [
             _op("assert", "p(x)", truth_value=True, confidence=0.5, actor="hypothesis"),
@@ -124,7 +124,7 @@ class TestEvidenceReplay:
 
     def test_an_inviolable_belief_is_untouched_by_evidence(self):
         # Only ask-user grounding confers 1.0, and evidence must not erode it
-        # (RFC-0036 §6): corroboration cannot raise it and the fold would only
+        #: corroboration cannot raise it and the fold would only
         # lower it.
         view = reconstruct_view(
             [_op("assert", "p(x)", truth_value=True, confidence=1.0), _op("refute", "p(x)")],

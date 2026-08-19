@@ -1,4 +1,4 @@
-"""Tests for vocabulary-link constraint synthesis (RFC-0029/0030/0031).
+"""Tests for vocabulary-link constraint synthesis (/0030/0031).
 
 ``functional_exclusion_clauses`` turns a single-valued predicate holding two
 different final-argument values into an SMT ground clause so the consistency
@@ -6,7 +6,7 @@ check goes UNSAT; ``inter_predicate_exclusion_clauses`` does the same for an
 excluded predicate pair on one argument tuple; ``implication_clauses``
 for an antecedent held true with its consequent held false.
 ``functional_exclusion_partner`` finds the older belief the recency-supersession
-rule retracts. ``backward_implication_clauses`` (RFC-0049 / ADR-0090) is the one
+rule retracts. ``backward_implication_clauses`` (/) is the one
 derivation-side synthesizer: it walks the implication links backwards from a
 verification target so an acquired consequence is provable, not just detectable.
 The clause tests drive the real solver (``check_consistency`` / ``entails``) so a
@@ -98,7 +98,7 @@ class TestFunctionalExclusionClauses:
 
 
 class TestInterPredicateExclusionClauses:
-    """Inter-predicate (pairwise antonym / exclusion class) clause synthesis (RFC-0030)."""
+    """Inter-predicate (pairwise antonym / exclusion class) clause synthesis."""
 
     def test_conflicting_pair_is_unsat(self) -> None:
         # alive/dead on the same subject under a declared exclusion: the synthesized
@@ -120,7 +120,7 @@ class TestInterPredicateExclusionClauses:
     def test_relation_is_undirected(self) -> None:
         # Only ``dead -> alive`` is recorded (the ritual links the proposing symbol
         # only), yet a clash asserted in either order must be caught: the relation is
-        # treated undirected so the assertion-order blind spot is closed (RFC-0030 §5).
+        # treated undirected so the assertion-order blind spot is closed.
         beliefs = dict([_true("alive(socrates)"), _true("dead(socrates)")])
         assert len(inter_predicate_exclusion_clauses(beliefs, {"dead": {"alive"}})) == 1
         assert len(inter_predicate_exclusion_clauses(beliefs, {"alive": {"dead"}})) == 1
@@ -155,7 +155,7 @@ class TestInterPredicateExclusionClauses:
 
 
 class TestVocabularyImplicationClauses:
-    """Defeasible-implication clause synthesis (RFC-0031)."""
+    """Defeasible-implication clause synthesis."""
 
     def test_true_antecedent_with_false_consequent_is_unsat(self) -> None:
         # cat(x) asserted while animal(x) is held false: the synthesized implication
@@ -176,7 +176,7 @@ class TestVocabularyImplicationClauses:
 
     def test_relation_is_directed(self) -> None:
         # ``cat -> animal`` fires; the converse must NOT be synthesized from it --
-        # symmetrizing would inject "every animal is a cat" (RFC-0031 §4).
+        # symmetrizing would inject "every animal is a cat".
         beliefs = dict([_true("cat(felix)"), _false("animal(felix)")])
         assert len(implication_clauses(beliefs, {"cat": {"animal"}})) == 1
         assert implication_clauses(beliefs, {"animal": {"cat"}}) == []
@@ -188,7 +188,7 @@ class TestVocabularyImplicationClauses:
 
     def test_absent_consequent_yields_no_clause(self) -> None:
         # No forward materialization: with animal(felix) off the board the clause set
-        # stays empty, matching unit propagation's escalation condition (RFC-0031 §4).
+        # stays empty, matching unit propagation's escalation condition.
         beliefs = dict([_true("cat(felix)")])
         assert implication_clauses(beliefs, {"cat": {"animal"}}) == []
 
@@ -204,14 +204,14 @@ class TestVocabularyImplicationClauses:
     def test_reverse_assertion_order_is_caught(self) -> None:
         # In-beat propagation reads only the newly asserted atom's links, so a
         # consequent asserted false *after* its antecedent is missed there. Scanning
-        # board pairs closes that blind spot at this deeper tier (RFC-0031 §4): the
+        # board pairs closes that blind spot at this deeper tier: the
         # clause set does not depend on which atom arrived last.
         beliefs = dict([_false("animal(felix)"), _true("cat(felix)")])
         assert len(implication_clauses(beliefs, {"cat": {"animal"}})) == 1
 
     def test_chain_yields_one_clause_per_broken_link(self) -> None:
         # cat -> mammal -> animal with both consequents held false: each broken link
-        # is its own ground clause (resolved one per beat, ADR-0064).
+        # is its own ground clause (resolved one per beat).
         beliefs = dict([_true("cat(felix)"), _false("mammal(felix)"), _false("animal(felix)")])
         relation = {"cat": {"mammal"}, "mammal": {"animal"}}
         # mammal(felix) is false, so it is not a true antecedent: only cat -> mammal fires.
@@ -227,7 +227,7 @@ class TestVocabularyImplicationClauses:
 
 
 class TestVocabularyClauses:
-    """The aggregate synthesizer the detection and revision paths share (ADR-0072)."""
+    """The aggregate synthesizer the detection and revision paths share."""
 
     def test_aggregates_all_three_forms(self) -> None:
         beliefs = dict(
@@ -251,7 +251,7 @@ class TestVocabularyClauses:
 
     def test_clause_count_is_the_clash_count(self) -> None:
         # Every synthesized clause is one the belief set currently violates, which is
-        # what lets the revision path use the count as a progress measure (ADR-0072).
+        # what lets the revision path use the count as a progress measure.
         # Three residences clash pairwise: three clauses.
         beliefs = dict(
             [
@@ -301,7 +301,7 @@ class TestFunctionalExclusionPartner:
 
 
 class TestBackwardImplicationClauses:
-    """Derivation-side synthesis for the belief-verification query (ADR-0090).
+    """Derivation-side synthesis for the belief-verification query.
 
     Every case runs the real ``entails`` so the verdict is the solver's, not the
     clause list's shape. The baseline each one contrasts against is the verdict
@@ -331,7 +331,7 @@ class TestBackwardImplicationClauses:
 
     def test_multi_hop_chain_is_entailed(self) -> None:
         # r => q => p: the closure must carry the target, or "can the system verify
-        # what it owns" would depend on the link graph's shape (RFC-0049 §4-2).
+        # what it owns" would depend on the link graph's shape.
         beliefs = dict([_true("sparrow(s1)")])
         targets = {"sparrow": {"bird"}, "bird": {"animal"}}
         clauses = backward_implication_clauses("animal(s1)", targets)
@@ -356,7 +356,7 @@ class TestBackwardImplicationClauses:
         assert entails({}, clauses, "animal(felix)") == "NOT_ENTAILED"
 
     def test_direction_is_not_symmetrized(self) -> None:
-        # cat(x) -> animal(x) must not license animal(x) -> cat(x) (RFC-0031 §4).
+        # cat(x) -> animal(x) must not license animal(x) -> cat(x).
         beliefs = dict([_true("animal(felix)")])
         clauses = backward_implication_clauses("cat(felix)", {"cat": {"animal"}})
         assert entails(beliefs, clauses, "cat(felix)") == "NOT_ENTAILED"

@@ -1,4 +1,4 @@
-"""What the governance layer decides to do next (RFC-0063 §2, ADR-0120).
+"""What the governance layer decides to do next.
 
 :mod:`~doxa.governance.ledger` says what happened and
 :mod:`~doxa.governance.view` says what is currently the case. This
@@ -17,11 +17,11 @@ pure functions ``modules.reasoning._resolve_contradiction`` calls, in the same
 order, with the same conditions. What changes is *where the order lives*: it was
 written out by hand in each caller (the ladder's stage-4 host said so in its own
 docstring), and a wiring written twice is a wiring that gets fixed once
-(ADR-0082 decision 6). A host-side test pins this order against production.
+. A host-side test pins this order against production.
 
 **Scope: the belief tier.** Beliefs, learned rules and the ties between them --
-the ledger's primary object (RFC-0063 §2 decision 3). Production additionally
-arbitrates *acquired vocabulary links* (``find_link_culprits``, ADR-0074), which
+the ledger's primary object. Production additionally
+arbitrates *acquired vocabulary links* (``find_link_culprits``), which
 belong to asset ① and whose ledger §2 decision 3 deliberately keeps separate. So
 this surface does not reduce production to a single call, and it is not meant to:
 whether the two ledgers are ever shown as one view is a later judgement.
@@ -79,10 +79,10 @@ class Belief:
         target: The belief's identity -- its expression string (``mortal(socrates)``).
         truth_value: What it claims.
         confidence: Its credence. 1.0 is inviolable and only ask-user grounding
-            confers it (ADR-0018).
+            confers it.
         context: The role it was born under. The revision preference reads this to
-            tell a conjecture from an assertion (``hypothesis``, ADR-0013), and
-            getting it wrong silently disables that preference (ADR-0082 decision 7).
+            tell a conjecture from an assertion (``hypothesis``), and
+            getting it wrong silently disables that preference.
     """
 
     target: str
@@ -101,7 +101,7 @@ class Rule:
         confidence: Its credence, weighed against a belief's when governance picks
             what to give up.
         defeasible: Whether it may be retracted at all. A base axiom is not a
-            revision candidate; only a learned rule is (ADR-0010).
+            revision candidate; only a learned rule is.
     """
 
     name: str
@@ -118,11 +118,11 @@ class Constraints:
         rules: Implication-style rules. All of them constrain; the defeasible ones
             are additionally revision candidates.
         hard_axioms: Inviolable TPTP axioms -- exclusion links, EUF assignment
-            rules, sentinel disequalities, equality links (ADR-0060, ADR-0061).
+            rules, sentinel disequalities, equality links.
             They join the consistency check and are never revision candidates.
         functional_predicates: Predicates whose final argument is a *value*, so a
             newer claim supersedes the older one it excludes rather than
-            contradicting it (recency supersession, ADR-0068). Only consulted for
+            contradicting it (recency supersession). Only consulted for
             ``escalated``.
     """
 
@@ -142,10 +142,10 @@ class GovernanceOutcome:
             Empty when consistent, and also when a conflict is real but nothing is
             revisable -- the correct detect-but-hold-silently outcome.
         hold: The pair a ``hold`` names, carrying what an answer would ground
-            (ADR-0081). ``None`` unless the operations contain a ``hold``.
+            . ``None`` unless the operations contain a ``hold``.
         undecided: A conflict was found and no operation was decided at all --
             neither a retraction nor a hold. Distinct from a hold: this is the
-            pile-up that no single question can settle (ADR-0081's arity gate), and
+            pile-up that no single question can settle (arity gate), and
             a host that reports "asked" for it would be lying about its own state.
     """
 
@@ -183,7 +183,7 @@ def govern(
         escalated: The atom whose assertion raised the conflict, when the host
             knows it. Only used for recency supersession: a newer functional claim
             supersedes the older one it excludes, whatever their confidences, because
-            a state change is not a miscalibration (ADR-0068).
+            a state change is not a miscalibration.
         max_rounds: E-matching round budget for the consistency checks; ``None``
             uses the solver default.
 
@@ -244,7 +244,7 @@ def _resolve(
         )
         if tie is None:
             # Real conflict, nothing revisable and no answerable pair: governance
-            # holds its peace rather than inventing an operation (ADR-0081).
+            # holds its peace rather than inventing an operation.
             return GovernanceOutcome(consistent=False, undecided=True)
         return GovernanceOutcome(
             consistent=False,
@@ -277,7 +277,7 @@ def _resolve(
         LedgerOp(op="retract", target=node_id, actor=GOVERNANCE_ACTOR, truth_value=flipped),
         # The conflict named a set of beliefs and one of them was flipped; the rest
         # were weighed against it and survived, which is evidence for them and costs
-        # nothing since the core is already in hand (ADR-0075).
+        # nothing since the core is already in hand.
         *_corroborate_survivors(unsat_core, expr_to_node_id, revised=node_id),
     ]
     return GovernanceOutcome(consistent=False, ops=tuple(ops))
@@ -304,7 +304,7 @@ def _corroborate_survivors(
     *,
     revised: str,
 ) -> list[LedgerOp]:
-    """Book a ``confirm`` for every belief the conflict suspected and kept (ADR-0075)."""
+    """Book a ``confirm`` for every belief the conflict suspected and kept."""
     survivors = []
     for core_expr in unsat_core:
         node_id = expr_to_node_id.get(str(core_expr))
@@ -318,7 +318,7 @@ def _supersede(
     escalated: str | None,
     functional_predicates: Collection[str],
 ) -> LedgerOp | None:
-    """Retire the older claim a newer functional one displaces (ADR-0068).
+    """Retire the older claim a newer functional one displaces.
 
     Checked before consistency, as production does: functional exclusion says the
     world moved, so the older belief was right when it was written and keeps its
@@ -344,7 +344,7 @@ def _board(beliefs: Sequence[Belief]) -> dict[str, dict[str, Any]]:
     """Build the node-id -> data mapping the governance logic reads.
 
     The role goes under ``belief_context`` because that is the key the blackboard
-    writes and the revision preference reads (ADR-0082 decision 7); ``role`` would
+    writes and the revision preference reads; ``role`` would
     silently disable the hypothesis preference.
     """
     return {

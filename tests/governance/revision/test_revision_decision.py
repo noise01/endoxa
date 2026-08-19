@@ -31,7 +31,7 @@ class TestChooseRevisionCandidate:
 
 
 class TestLinkCandidates:
-    """Acquired links join the comparison, ranked between facts and rules (ADR-0074)."""
+    """Acquired links join the comparison, ranked between facts and rules."""
 
     def test_only_link_targets_picks_lowest_confidence(self) -> None:
         decision = choose_revision_candidate(None, [], [0.8, 0.3])
@@ -78,7 +78,7 @@ class TestSelectRevisionTarget:
     """RFC-0022, ADR-0022: fallibility is expressed by confidence < 1.0, not role.
 
     User testimony carrying interlocutor confidence (0.95) is now revisable; only a
-    confidence of 1.0 (ask-user grounding, ADR-0018) or an unmarked belief stays
+    confidence of 1.0 (ask-user grounding) or an unmarked belief stays
     inviolable.
     """
 

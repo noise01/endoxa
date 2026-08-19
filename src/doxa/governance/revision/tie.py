@@ -1,9 +1,9 @@
-"""Contradiction ties that no revision can settle, turned into a question (RFC-0042, ADR-0081).
+"""Contradiction ties that no revision can settle, turned into a question.
 
 The exclusion and implication tiers resolve every contradiction the solver can
-decide (ADR-0068..ADR-0070). What they deliberately leave alone is the *tie*:
+decide (..). What they deliberately leave alone is the *tie*:
 two beliefs of equal standing whose conflict has no cheaper side. Three RFCs
-(RFC-0029 §7, RFC-0030 §6, RFC-0031 §5) settled on holding both rather than
+ settled on holding both rather than
 retracting one arbitrarily -- picking a side between two equally certain claims
 would be arbitrariness, not calibration.
 
@@ -13,14 +13,14 @@ tie surfaced only as a warning log in
 This module decides when a tie is well-formed enough to ask the user about, and
 what each answer would have to ground for the answer to actually settle it.
 
-Scope (RFC-0043 §7): **any pair the revision preference cannot separate** -- two
+Scope: **any pair the revision preference cannot separate** -- two
 beliefs sharing a preference band (``kernel.governance.tms.preference``). RFC-0042 could
 only generalise from the 1.0 case and wrote the gate as "both inviolable"; 1.0 is
 now one band among others. What that newly admits is every *fallible*
 equal-confidence pair, and since ``interlocutor_confidence`` is a constant, that
 means every clash between two things the user said.
 
-Pure and basis-independent (governance tier, RFC-0028 §7): stdlib + sibling
+Pure and basis-independent (governance tier): stdlib + sibling
 domain modules only.
 """
 
@@ -37,10 +37,10 @@ if TYPE_CHECKING:
     from doxa.solver import Expr
 
 # A tie is a *pair*: exactly two held beliefs named by the conflict. Three or
-# more (a functional-exclusion pile-up, ADR-0068) cannot be settled by one
+# more (a functional-exclusion pile-up) cannot be settled by one
 # yes/no question, and this gate is what keeps a question from being asked
 # about them -- the question-side counterpart of "each contradiction is
-# resolved on its own beat" (ADR-0064).
+# resolved on its own beat".
 _TIE_ARITY = 2
 
 
@@ -52,7 +52,7 @@ class ContradictionTie:
     ("is it true?"). Which of the pair that is comes from lexicographic order of
     the node ids, not from the UNSAT core order -- the core order is
     solver-dependent, and letting it choose would make the question's identity
-    (and hence its de-duplication key) wobble from beat to beat (RFC-0042 §4).
+    (and hence its de-duplication key) wobble from beat to beat.
 
     Attributes:
         node_a: The atom the question asks about, in the positive.
@@ -123,7 +123,7 @@ def select_tie_question_target(  # noqa: PLR0913
     max_rounds: int | None = None,
     vocab: PredicateConstraints | None = None,
 ) -> ContradictionTie | None:
-    """Decide whether a contradiction is a tie worth asking the user about (RFC-0042 §3-§5).
+    """Decide whether a contradiction is a tie worth asking the user about (§5).
 
     Called where revision gave up: every fact, link and rule candidate was
     exhausted without a target. That branch covers more than ties (a conflict
@@ -132,30 +132,30 @@ def select_tie_question_target(  # noqa: PLR0913
 
     Three conditions, in order:
 
-    1. The core names **exactly two** held beliefs (RFC-0042 §3). Zero means there
+    1. The core names **exactly two** held beliefs. Zero means there
        is nobody to ask about; three or more is a pile-up that one yes/no cannot
        settle.
-    2. **The preference cannot separate them** (RFC-0043 §7): they share a band,
+    2. **The preference cannot separate them**: they share a band,
        and they are not hypotheses. An unequal pair got settled by revision and
        never reaches here.
     3. **Both completions are SAT** (§5). The affirmative answer and the negative
        answer each have to actually restore consistency. Asking a question whose
        answer leaves the contradiction standing spends the user's time and comes
        straight back on the next beat; this is the same discipline the verified
-       revision target applies to a flip (ADR-0060, ADR-0064), moved in front of
+       revision target applies to a flip, moved in front of
        the question.
 
     The sub-theory both completions are checked against is built exactly as
     :func:`~doxa.governance.revision.engine.select_verified_revision_target`
     builds it: every belief sharing an individual with a core atom, plus the core
     atoms themselves. Vocabulary clauses are re-synthesised per trial so the
-    check sees the same constraints the detection did (ADR-0072).
+    check sees the same constraints the detection did.
 
     Condition 3 restates, from the answer's side, what the revision selector
     already found from the flip's side: ``node_a`` flipping to SAT and the "no"
     completion being SAT are the same fact. So a pair that selector declined as
     unsettleable always passes here, and a pair where only one flip settles never
-    arrives. Checking it twice is not redundancy but a wedge (ADR-0082): if either
+    arrives. Checking it twice is not redundancy but a wedge: if either
     side is ever changed alone, the correspondence breaks where a test can see it.
 
     Args:
@@ -184,7 +184,7 @@ def select_tie_question_target(  # noqa: PLR0913
     # currently held at the same truth value: if they are, the conflict is
     # between the claims themselves and one must give; if they are not, the
     # conflict is between a claim and a *denial*, and affirming one affirms the
-    # other (RFC-0042 §4 has the four-row check).
+    # other (has the four-row check).
     b_on_affirm = truth_a != truth_b
 
     core_terms: frozenset[str] = frozenset().union(*(_fact_argument_terms(nid) for nid, _ in tie_nodes))

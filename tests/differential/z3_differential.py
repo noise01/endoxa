@@ -1,4 +1,4 @@
-"""Z3 differential oracle for the frozen doxa SMT solver (ADR-0058, ADR-0050).
+"""Z3 differential oracle for the frozen doxa SMT solver.
 
 Renders one backend-neutral :mod:`tests.differential.formula` AST into both the
 doxa solver (``doxa.solver``) and Z3, checks satisfiability with

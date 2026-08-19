@@ -1,4 +1,4 @@
-"""Tests for the governance decision surface (RFC-0063 §5 増分②, ADR-0120).
+"""Tests for the governance decision surface.
 
 ``govern`` is where an external host stops assembling the governance layer's parts and starts
 being governed by it, so what is tested is that the *answers* are the operations the ledger
@@ -52,7 +52,7 @@ class TestRetractingABelief:
 
     def test_the_survivors_of_the_conflict_are_confirmed(self):
         # The conflict named a set and one of them was flipped; the rest were weighed
-        # against it and survived, which is evidence for them (ADR-0075).
+        # against it and survived, which is evidence for them.
         outcome = govern(
             [_belief("alive(felix)", confidence=0.9), _belief("dead(felix)", confidence=0.6)],
             Constraints(hard_axioms=(_EXCLUSION,)),
@@ -117,7 +117,7 @@ class TestHolding:
         assert outcome.hold.affirm_true or outcome.hold.affirm_false
 
     def test_inviolable_beliefs_are_held_too(self):
-        # 1.0 is one band among others (ADR-0082): the preference cannot separate two
+        # 1.0 is one band among others: the preference cannot separate two
         # grounded claims either.
         outcome = govern(
             [_belief("alive(felix)", confidence=1.0), _belief("dead(felix)", confidence=1.0)],
@@ -130,7 +130,7 @@ class TestHolding:
 class TestSuperseding:
     def test_a_newer_functional_claim_retires_the_older_one(self):
         # A state change is not a miscalibration, so the older belief keeps its confidence
-        # and the newer wins whatever they are (ADR-0068).
+        # and the newer wins whatever they are.
         outcome = govern(
             [_belief("at(bob,home)", confidence=1.0), _belief("at(bob,office)", confidence=1.0)],
             Constraints(functional_predicates=frozenset({"at"})),

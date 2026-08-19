@@ -1,4 +1,4 @@
-"""Tests for verified revision-target selection (ADR-0064).
+"""Tests for verified revision-target selection.
 
 ``select_verified_revision_target`` differs from ``select_revision_target`` by
 checking that the fact it picks actually restores consistency, instead of trusting
@@ -132,7 +132,7 @@ class TestBackwardCompatibility:
 
 
 class TestEqualConfidenceTie:
-    """When the preference ranks two settling candidates alike, nothing is picked (ADR-0082).
+    """When the preference ranks two settling candidates alike, nothing is picked.
 
     Before RFC-0043 the selector returned the first candidate whose flip restored
     consistency. Since ``sorted`` is stable, equal-confidence candidates kept the
@@ -153,7 +153,7 @@ class TestEqualConfidenceTie:
         """Equal standing is not enough -- the board can separate what the preference cannot.
 
         ``q(c)`` is re-derived by the asserted ``a(c)``, so flipping it whiffs
-        (ADR-0060) and only ``p(c)`` settles the clash. The rule is "two settling
+         and only ``p(c)`` settles the clash. The rule is "two settling
         candidates", not "two candidates".
         """
         rules = [
@@ -218,7 +218,7 @@ class TestEqualConfidenceTie:
 
 
 class TestHypothesisIsReadFromBeliefContext:
-    """The hypothesis preference reads the key the blackboard actually writes (ADR-0082).
+    """The hypothesis preference reads the key the blackboard actually writes.
 
     ``add_atom`` takes a ``role`` argument and stores it under ``belief_context``;
     ``BeliefNode`` has no ``role`` field. Reading ``role`` -- as the selectors did
@@ -257,7 +257,7 @@ class TestHypothesisIsReadFromBeliefContext:
 
 
 class TestVocabularyDerivedClauses:
-    """The re-check sees the vocabulary constraints too (ADR-0072)."""
+    """The re-check sees the vocabulary constraints too."""
 
     def test_rejects_a_flip_that_only_moves_the_clash(self) -> None:
         # cat -> animal (implication link) and animal excludes mineral. The board
@@ -287,7 +287,7 @@ class TestVocabularyDerivedClauses:
         # Three residences under a single-valued predicate: three pairwise clashes,
         # and no single flip reaches SAT. Requiring full satisfiability would abandon
         # the fact path; the progress criterion keeps one retraction per beat
-        # (ADR-0064) and picks the lowest-confidence atom.
+        # and picks the lowest-confidence atom.
         constraints = PredicateConstraints(functional_predicates=("lives_in",))
         beliefs = {
             "lives_in(alice, tokyo)": {"belief_context": "observation", "confidence": 0.9, "truth_value": True},

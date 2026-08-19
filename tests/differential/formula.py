@@ -1,4 +1,4 @@
-"""Random propositional-formula generator for the Z3 differential oracle (ADR-0058).
+"""Random propositional-formula generator for the Z3 differential oracle.
 
 Produces a *backend-neutral* AST (the small frozen node types below) so a single
 generated structure can be rendered into both the frozen doxa solver
@@ -9,7 +9,7 @@ formula and must agree on SAT/UNSAT.
 The fragment is deliberately restricted to quantifier-free propositional logic
 (boolean variables under And/Or/Not/Implies). Both the doxa CDCL SAT core and
 Z3 are *complete* on this fragment, so any SAT/UNSAT disagreement is a genuine
-solver bug rather than an incompleteness artefact (ADR-0050 reliability guard).
+solver bug rather than an incompleteness artefact (reliability guard).
 
 This module is pure and framework-free: it depends only on ``random`` and does not
 import z3, hypothesis, or the host. hypothesis strategies that wrap it live in the

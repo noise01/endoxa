@@ -1,4 +1,4 @@
-"""Tests for tie detection on unsettleable contradictions (RFC-0042, ADR-0081).
+"""Tests for tie detection on unsettleable contradictions.
 
 ``select_tie_question_target`` runs where revision gave up. It has to say "yes,
 this is a two-way tie between two inviolable beliefs, and here is what each
@@ -60,7 +60,7 @@ class TestPairGate:
 
     def test_pile_up_of_three_is_not_asked_about(self) -> None:
         # Three co-held beliefs that are jointly, but not pairwise, impossible:
-        # one yes/no cannot settle it, so the tie gate must decline (RFC-0042 §3).
+        # one yes/no cannot settle it, so the tie gate must decline.
         rules = [_rule("fof(triple, axiom, ![X] : ~(alive(X) & dead(X) & buried(X))).")]
         beliefs = {
             "alive(felix)": _user(),
@@ -80,7 +80,7 @@ class TestPairGate:
 
 
 class TestPreferenceGate:
-    """A tie is where the *preference* runs out, not where confidence hits 1.0 (ADR-0082).
+    """A tie is where the *preference* runs out, not where confidence hits 1.0.
 
     The gate asks whether the two beliefs share a preference band. Confidence 1.0
     is one band among others, so the case RFC-0042 could generalise from falls out
@@ -108,7 +108,7 @@ class TestPreferenceGate:
         # Intuition writes every conjecture at one constant confidence, so admitting
         # hypotheses would turn each clash between two of the system's own guesses
         # into a question. A conflict between conjectures wants evidence, not the
-        # user's attention (ADR-0082).
+        # user's attention.
         beliefs = {
             "alive(felix)": {"belief_context": "hypothesis", "confidence": 0.5, "truth_value": True},
             "dead(felix)": {"belief_context": "hypothesis", "confidence": 0.5, "truth_value": True},
@@ -181,7 +181,7 @@ class TestBothCompletionsMustSettle:
     def test_declines_when_the_negative_answer_leaves_a_contradiction(self) -> None:
         # alive/dead exclude each other *and* a third rule forces alive(felix).
         # "yes" (alive) settles; "no" (dead) still clashes with the forcing rule,
-        # so the question would half-whiff and must not be asked (RFC-0042 §5).
+        # so the question would half-whiff and must not be asked.
         rules = [
             _EXCLUSION_RULE,
             _rule("fof(forced, axiom, alive(felix))."),

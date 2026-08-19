@@ -1,4 +1,4 @@
-"""The current view as a derivation of the ledger (RFC-0063 §2, ADR-0119).
+"""The current view as a derivation of the ledger.
 
 RFC-0063 declares that **the current view is derived from the ledger**. This
 module is that declaration executed: fold the operation series and what comes out
@@ -11,27 +11,27 @@ about it (the tie question), but it has never had a name in the state itself: a
 held tie was indistinguishable from two ordinary beliefs that happen to conflict.
 Here it is a value of :attr:`BeliefState.state`, and both sides carry it.
 
-**Releasing a hold is derived, never asserted** (RFC-0063 §2 decision 2). A hold
+**Releasing a hold is derived, never asserted**. A hold
 is not a lock: it is the name of "the preference cannot separate these two"
-(ADR-0082), so it ends when the preference *can* -- when a later operation moves
+, so it ends when the preference *can* -- when a later operation moves
 one side out of the other's band. :attr:`BeliefState.released_by` reads back which
 operation did it.
 
 **The synthetic-layer 1.0 rule** (``backlog.md`` §6(e)(v), RFC-0023 §6) is stated
-once, here: ``ground`` is the only operation that confers 1.0 (ADR-0018), so a
+once, here: ``ground`` is the only operation that confers 1.0, so a
 grounded answer is the one operation that always separates a band and directly
 releases a hold. Evidence can release one too, but only by actually moving a
 credence -- which is the difference between settling a tie and outranking it.
 
 **On replaying the Laplace fold.** ``confirm``/``refute`` carry no confidence:
 the host's event says only which way the evidence points, and the credence is
-computed by ``domains/blackboard/evidence.py`` (RFC-0036). To reconstruct a view
+computed by ``domains/blackboard/evidence.py``. To reconstruct a view
 that can be *checked* against the board, this module replays the same arithmetic.
 That is a fourth copy of Laplace smoothing in the codebase (ADR-0075 counted
 three), and it is deliberate: an asset may not import host domain code, and a
 view that gave up on confidence could not tell a correct derivation from one that
 lost half its evidence. The copy collapses when the evidence rule itself moves
-into ``kernel/governance`` in the Phase 2 migration (RFC-0063 §5 increment 3).
+into ``kernel/governance`` in the Phase 2 migration (increment 3).
 
 Pure and basis-independent (stdlib only).
 """
@@ -50,9 +50,9 @@ if TYPE_CHECKING:
 HELD = "HELD"
 
 #: A belief the view holds *without* being able to prefer it or its rival: the
-#: first-class form of the unsettleable tie (ADR-0082). Both sides of the tie
+#: first-class form of the unsettleable tie. Both sides of the tie
 #: carry it, and neither is withdrawn -- holding both is the calibrated answer,
-#: and picking one would be arbitrariness (RFC-0029 §7).
+#: and picking one would be arbitrariness.
 UNRESOLVED = "UNRESOLVED"
 
 BeliefStatus = Literal["HELD", "UNRESOLVED"]
@@ -69,7 +69,7 @@ _DEFAULT_CONFIDENCE = 1.0
 _CONFIDENCE_EPSILON = 1e-9
 
 #: The role a conjecture is written under (``belief_context``), which the
-#: revision preference reaches for first (ADR-0013, ADR-0082 decision 7).
+#: revision preference reaches for first.
 _HYPOTHESIS = "hypothesis"
 
 #: Defaults for the evidence fold, mirroring ``settings.belief_evidence_*``.
@@ -96,7 +96,7 @@ class BeliefState:
         released_by: The ``origin_event_id`` of the operation that ended the last
             hold, or ``None`` when it was never held or is held still.
         evidence_prior: The credence burned in at the first piece of evidence,
-            and the for/against tally since (RFC-0036 §3). Kept because the fold
+            and the for/against tally since. Kept because the fold
             is path-dependent -- the posterior cannot be recomputed from the
             confidence alone.
         evidence_for: Corroborations folded in so far.
@@ -143,7 +143,7 @@ class ViewEquivalence:
             two sides' evidence tallies disagree. **Expected to be zero**: this
             column was the write side's silences, and RFC-0065 increment 1 closed
             them -- the board no longer moves a credence without recording it
-            (ADR-0135). Two things can still put a target here, and they are not
+            . Two things can still put a target here, and they are not
             the same:
 
             - **A regression in the recording path.** A booking the board folded
@@ -152,18 +152,18 @@ class ViewEquivalence:
             - **A restore that brought no tally back.** The ledger keeps a
               belief's whole series, so a belief that returned to the board
               without its counts reads as saying less than the audit log can
-              account for. Paging carries the tally now (RFC-0066), which is what
+              account for. Paging carries the tally now, which is what
               made this column an invariant rather than a residual; what remains
               are the restores whose source has no tally to give -- a broadcast
-              persists a proposition, not its evidence (ADR-0047). Paging itself
-              is still not a ledger operation (RFC-0065 §3-4): the fix was to
+              persists a proposition, not its evidence. Paging itself
+              is still not a ledger operation: the fix was to
               stop the board forgetting, not to teach the ledger to forget.
 
             Note the test is a disagreement, not an inequality: the ledger
             holding *more* than the board lands here too, which is what makes
             the second case visible at all.
         missing_from_board: Targets the ledger knows that the board no longer
-            has -- paged out to LTM or evicted (ADR-0042). Excluded from the
+            has -- paged out to LTM or evicted. Excluded from the
             comparison rather than counted as breakage, and reported so the
             exclusion is never invisible.
         details: Human-readable lines for the disagreements, for a failing test
@@ -242,7 +242,7 @@ def _apply(
     )
     if op.op == "retract" and op.target_kind == "atom" and op.confidence is None:
         # The flip re-attributes the belief's own evidence to the claim it now
-        # makes (``swap_evidence``, ADR-0078). The two conditions mirror the
+        # makes (``swap_evidence``). The two conditions mirror the
         # board's own: it swaps only for an atom, and only when the write stated
         # no confidence -- a writer that states one is declaring a credence for
         # the new claim, and a tally kept for the old one must not overrule it.
@@ -258,7 +258,7 @@ def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool)
     """Whether a ``ground`` also reversed a belief the board already held.
 
     An ask-user answer wins the operation whatever else the write does
-    (:mod:`~doxa.governance.derive`, ADR-0018), which is right --
+    (:mod:`~doxa.governance.derive`), which is right --
     conferring confidence 1.0 is the thing that only this operation does. But the
     write can *also* be a reversal, and then the board re-attributes the belief's
     evidence exactly as it does for a revision flip: its test is "the truth value
@@ -270,7 +270,7 @@ def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool)
     (``truth_flipped`` is only set for a node already there), a changed truth
     value, and no stated confidence.
 
-    Found by RFC-0065 increment 1 (ADR-0135) -- **while the write side was silent
+    Found by RFC-0065 increment 1 -- **while the write side was silent
     this could not be seen**, because ``unattributed`` was expected to be non-zero
     for other reasons and a target landing there said nothing in particular.
     """
@@ -285,7 +285,7 @@ def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool)
 
 
 def _release_holds(view: dict[str, BeliefState], op: LedgerOp) -> None:
-    """End any hold this operation just made settleable (RFC-0063 §2 decision 2).
+    """End any hold this operation just made settleable.
 
     A hold is released when the preference can separate the pair again -- when
     the two sides no longer share a band. The releasing operation is recorded so
@@ -335,10 +335,10 @@ def _fold_evidence(
     prior_strength: float,
     ceiling: float,
 ) -> BeliefState:
-    """Book one piece of evidence (RFC-0036 §3, mirroring ``fold_evidence``).
+    """Book one piece of evidence (mirroring ``fold_evidence``).
 
     An inviolable belief is left alone: it cannot become more certain, and
-    running it through the update would only lower it (RFC-0036 §6).
+    running it through the update would only lower it.
     """
     confidence = _DEFAULT_CONFIDENCE if state.confidence is None else state.confidence
     if confidence >= 1.0:
@@ -370,7 +370,7 @@ def _swap_evidence(state: BeliefState, *, prior_strength: float, ceiling: float)
     The counts support *what the target currently claims*, not a fixed
     proposition, so the counter-evidence that motivated the flip reads as one
     count for the new claim and the burned-in prior becomes its complement
-    (ADR-0078, RFC-0039 §5).
+    .
     """
     confidence = _DEFAULT_CONFIDENCE if state.confidence is None else state.confidence
     if confidence >= 1.0:
@@ -398,7 +398,7 @@ def compare_to_state(
     view: Mapping[str, BeliefState],
     board: Mapping[str, Mapping[str, Any]],
 ) -> ViewEquivalence:
-    """Check a reconstructed view against the live blackboard (RFC-0063 §7 criterion 3).
+    """Check a reconstructed view against the live blackboard (criterion 3).
 
     Args:
         view: The output of :func:`reconstruct_view`.

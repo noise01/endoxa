@@ -14,12 +14,12 @@ _FACT_ARGS_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*\((.*)\)$")
 # Tie-break ranks for equal-confidence revision candidates, ordered by how much
 # they generalize: a fact (rank 0, implicit) binds one individual, an acquired
 # link binds two predicates over all individuals, a learned rule can state any
-# formula. The most local revision wins a tie (ADR-0074).
+# formula. The most local revision wins a tie.
 _LINK_TIE_RANK = 1
 _RULE_TIE_RANK = 2
 
 # Two candidates of equal standing both settling the conflict is where the
-# preference runs out (ADR-0082). One is a decision; two is a tie.
+# preference runs out. One is a decision; two is a tie.
 _UNSETTLEABLE_ARITY = 2
 
 if TYPE_CHECKING:
@@ -104,10 +104,10 @@ def entails(
     assumptions, and check satisfiability. If the negation cannot be satisfied
     alongside the beliefs and rules, ``target`` is entailed. This reuses the same
     solver machinery as :func:`check_consistency` so belief verification
-    (ADR-0017) rests on the same epistemic core as contradiction detection.
+     rests on the same epistemic core as contradiction detection.
 
     The target atom's own presence among ``beliefs`` is excluded from the
-    assumptions (ADR-0034): verifying whether ``target`` follows must not take
+    assumptions: verifying whether ``target`` follows must not take
     ``target`` itself as a premise, or the query is vacuous -- a belief atom that
     is merely present would trivially entail itself (``P`` and ``Not(P)`` in the
     same assumption set). This realizes ADR-0030's stated intent for cautious
@@ -137,7 +137,7 @@ def entails(
         solver.add(expr)
     assumptions, _ = build_assumptions(beliefs)
     # Drop the target atom in either polarity so its own presence is never a
-    # premise for its own proof (ADR-0034). Only OTHER beliefs + rules may entail it.
+    # premise for its own proof. Only OTHER beliefs + rules may entail it.
     negated_target = Not(target_expr)
     excluded = {str(target_expr), str(negated_target)}
     assumptions = [a for a in assumptions if str(a) not in excluded]
@@ -162,9 +162,9 @@ def find_rule_culprits(
     rule dropped from the active set. A rule whose removal flips UNSAT to SAT is
     a culprit (single-fault assumption). This sidesteps the SMT engine's
     inability to surface quantified rules in the unsat core, since E-matched
-    ground instances are asserted as hard clauses (ADR-0010).
+    ground instances are asserted as hard clauses.
 
-    The vocabulary-derived ground clauses stay asserted throughout (ADR-0072).
+    The vocabulary-derived ground clauses stay asserted throughout.
     Without them a purely vocabulary-derived contradiction -- an exclusion or
     implication clash no rule participates in -- leaves the reduced theory SAT for
     *every* defeasible rule, so all of them are reported as culprits and
@@ -200,11 +200,11 @@ def find_supporting_rules(
     *,
     max_rounds: int | None = None,
 ) -> list[Expr]:
-    """Find defeasible rules ``target`` cannot be derived without (ADR-0080).
+    """Find defeasible rules ``target`` cannot be derived without.
 
     The mirror image of :func:`find_rule_culprits`, written the same way and for
     the same reason: the SMT engine cannot surface quantified rules in an unsat
-    core (E-matched instances are asserted as hard clauses, ADR-0010), so which
+    core (E-matched instances are asserted as hard clauses), so which
     rules a derivation used has to be recovered by leave-one-out. There, dropping
     a rule that flips UNSAT to SAT identifies a culprit; here, dropping a rule
     that flips ENTAILED to NOT_ENTAILED identifies a support.
@@ -215,7 +215,7 @@ def find_supporting_rules(
     count as counter-evidence against the belief. That is the intended reading:
     losing one of two sufficient supports is not the loss of the belief's
     footing, and RFC-0038 §3 already drew the line at support *disappearing*
-    rather than weakening. The bias is toward recording nothing (RFC-0041 §3).
+    rather than weakening. The bias is toward recording nothing.
 
     ``UNKNOWN`` (the deliberation budget ran out) never yields an edge either,
     whether it is the standing verdict or a re-check: a question that was not
@@ -257,7 +257,7 @@ def find_link_culprits(
 ) -> list[PredicateLink]:
     """Find acquired vocabulary links whose retraction alone restores consistency.
 
-    The link-level twin of :func:`find_rule_culprits` (ADR-0074). For each link
+    The link-level twin of :func:`find_rule_culprits`. For each link
     the acquisition ritual populated, the vocabulary clauses are **re-synthesized**
     with just that link dropped (ADR-0072's discipline: the clause set is derived
     from the constraints, never carried around) and consistency is re-checked. A
@@ -267,11 +267,11 @@ def find_link_culprits(
     This is what lets a wrong link die. Without it, every contradiction a mistaken
     ritual link creates is resolved by retracting a *belief* -- the acquisition
     error is transcribed into the belief set instead of being blamed on its source
-    (RFC-0035 §1).
+    .
 
     ``functional_predicates`` is not a candidate: it is a config bootstrap, not
     acquired data, and its clashes are resolved by recency supersession upstream
-    (ADR-0068). A contradiction no link participates in yields no culprit, so the
+    . A contradiction no link participates in yields no culprit, so the
     revision falls through to the fact/rule paths unchanged.
 
     Args:
@@ -305,8 +305,8 @@ def select_revision_target(
 
     Prefers the lowest-confidence hypothesis in the UNSAT core; otherwise falls back to the
     lowest-confidence *fallible* belief -- one whose confidence is below 1.0. A confidence of
-    1.0 marks an inviolable belief (only ask-user grounding, ADR-0018, writes it); everything
-    else, including user testimony stamped with interlocutor confidence (RFC-0022, ADR-0022),
+    1.0 marks an inviolable belief (only ask-user grounding, writes it); everything
+    else, including user testimony stamped with interlocutor confidence,
     is revisable. A belief carrying no explicit confidence defaults to 1.0 and so stays
     inviolable -- revision fails safe toward not touching an unmarked belief. Returns None when
     nothing may be revised.
@@ -369,29 +369,29 @@ def select_verified_revision_target(  # noqa: PLR0913
     When a rule immediately re-derives that atom -- a consequent still forced by an
     asserted antecedent -- the flip is a no-op and the contradiction persists. The
     ablation ladder surfaced this "whiff" once exclusion links made independent
-    contradictions common (ADR-0060). This selector verifies each candidate, in the
+    contradictions common. This selector verifies each candidate, in the
     same preference order (hypotheses first, then lowest confidence), and returns
     the first whose flip genuinely restores satisfiability.
 
     The re-check is scoped to the conflict's *own* sub-theory: the beliefs that share
     an individual with a core atom (its argument terms), plus the core atoms
-    themselves. A propositional theory decomposes by constant (ADR-0060), so several
+    themselves. A propositional theory decomposes by constant, so several
     independent contradictions can co-exist with no single global flip restoring full
     satisfiability; verifying against the whole belief set would then reject every
     per-constant fix. Scoping to the shared-individual cluster keeps the rule
     antecedents that could re-derive a flipped atom (so real whiffs are still caught)
     while excluding unrelated conflicts on other individuals (resolved on later
-    beats). Equality-coupled individuals (EUF, ADR-0061) pull each other into the
+    beats). Equality-coupled individuals (EUF) pull each other into the
     cluster through the equality atoms the solver placed in the core.
 
     The re-check also asserts the vocabulary-derived ground clauses, *re-synthesized
-    from each trial belief set* rather than reused from the detection pass (ADR-0072):
+    from each trial belief set* rather than reused from the detection pass:
     a flip can satisfy the clause that fired while creating a new clash, and only
     re-synthesis sees that. Because every synthesized clause is one the belief set
     currently violates, their count measures how much clash remains, which gives the
     fallback below its progress criterion.
 
-    The search runs **band by band** (ADR-0082). A band is a run of candidates the
+    The search runs **band by band**. A band is a run of candidates the
     preference ranks identically, and every member of a band is checked before the
     band is judged -- no early return. One candidate settling the conflict wins
     outright, exactly as before. *Two or more* settling it means the preference has
@@ -408,9 +408,9 @@ def select_verified_revision_target(  # noqa: PLR0913
     clash count is taken instead. Tie detection is deliberately **not** applied to
     this fallback: returning None here would not raise a question either (a pile-up
     fails the tie path's pair gate) and would only cost the "each contradiction is
-    resolved on its own beat" progress (ADR-0064). The choice is still deterministic,
-    because the candidate order is (ADR-0082). A no-op flip never qualifies, so
-    genuine whiffs are still rejected (ADR-0060).
+    resolved on its own beat" progress. The choice is still deterministic,
+    because the candidate order is. A no-op flip never qualifies, so
+    genuine whiffs are still rejected.
 
     Args:
         unsat_core: The conflicting expressions returned by the solver.
@@ -448,7 +448,7 @@ def select_verified_revision_target(  # noqa: PLR0913
         cluster.setdefault(nid, data)
 
     # Clash count of the unflipped cluster: the fallback below requires a candidate to
-    # strictly beat it (ADR-0072).
+    # strictly beat it.
     baseline_clashes = len(predicate_clauses(cluster, vocab))
     progress_target: tuple[str, dict[str, Any]] | None = None
 
@@ -493,8 +493,8 @@ def choose_revision_candidate(
     """Pick the lowest-confidence contradiction-revision target (§2.10).
 
     Considers a fact-level target (a revisable belief atom), link-level targets
-    (acquired vocabulary links whose retraction restores consistency, ADR-0074)
-    and rule-level targets (defeasible learned rules, ADR-0010). The
+    (acquired vocabulary links whose retraction restores consistency)
+    and rule-level targets (defeasible learned rules). The
     lowest-confidence candidate wins.
 
     Ties break by **generality**, most local first: fact, then link, then rule. A
@@ -502,7 +502,7 @@ def choose_revision_candidate(
     single belief; a learned rule can state an arbitrary formula, so it is more
     general than a link. The ordering is about blast radius, not about trust --
     a link's provenance (one LLM response in the acquisition ritual) is if
-    anything weaker than a rule whose confidence grew through use (RFC-0035 §5).
+    anything weaker than a rule whose confidence grew through use.
 
     Args:
         fact_confidence: Confidence of the fact revision target, or ``None`` when
