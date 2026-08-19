@@ -62,25 +62,23 @@ LEDGER_OPS: tuple[str, ...] = (
 
 OpKind = Literal["assert", "retract", "supersede", "confirm", "refute", "hold", "ground"]
 
-#: What a ledger operation is about. ``atom`` is a belief on the board (including
-#: forward-derived consequents, which carry a support record, ADR-0073); ``rule``
-#: is a learned axiom (RFC-0063 §2 decision 3 puts both in the ledger's primary
-#: scope). ``link`` is reserved and never emitted here: the vocabulary asset
-#: already owns the fallible-link ledger (``links_json`` plus evidence,
-#: ADR-0074/ADR-0076) and RFC-0063 §2 decision 3 keeps the two from being merged.
+#: What a ledger operation is about. ``atom`` is a belief, including a
+#: forward-derived consequent that carries a support record; ``rule`` is a learned
+#: axiom. Both are in the ledger's primary scope. ``link`` is reserved and never
+#: emitted here: a host that keeps its own record of fallible links between
+#: predicates owns that ledger, and the two are deliberately not merged.
 TargetKind = Literal["atom", "rule", "link"]
 
 #: Why a ``confirm``/``refute`` was booked. The tuple
 #: fixes a stable reading order for reports, as ``LEDGER_OPS`` does; membership
 #: tests should use it rather than re-listing the names.
 #:
-#: **This vocabulary lives here rather than in the host.** The event *names* in
-#: :mod:`~doxa.governance.derive` are duplicated and pinned by a
-#: host-side test because an asset may not import ``doppelganger.events`` -- the
-#: duplication is forced. A reason runs the other way: the ledger is what the
-#: word is for, and a host may import the kernel freely. So the discipline
-#: ``domains/memory/retention.py`` states for its keep set applies -- extend the
-#: vocabulary at its source rather than copying the strings into the writers.
+#: **These names live here rather than with whoever writes them.** The event names
+#: in :mod:`~doxa.governance.derive` are duplicated and pinned by a host-side test,
+#: because this package may not import a host's event definitions -- that
+#: duplication is forced. A reason runs the other way: the ledger is what the word
+#: is for, and a host may import this package freely. So extend the set at its
+#: source rather than copying the strings into the writers.
 #: A belief's footing went away and the loss was booked against it.
 REASON_SUPPORT_LOST = "support_lost"
 #: A write restated a belief already held, corroborating it instead of
@@ -100,26 +98,23 @@ EVIDENCE_REASONS: tuple[str, ...] = (
 
 EvidenceReason = Literal["support_lost", "reassertion", "revision_survived", "rule_retracted"]
 
-#: What the far end of a support is, in the same vocabulary the board writes
-#: (``domains.blackboard.support``): ``derivation`` names an atom's node
-#: id, ``rule`` a learned axiom's memory id. Held as a string rather than imported
-#: -- an asset may not import the host -- and pinned against the host's constants
-#: by the same host-side test that pins the event names.
+#: What the far end of a support is: ``derivation`` names an atom's node id,
+#: ``rule`` a learned axiom's memory id. Held as a string rather than imported
+#: from the host, and pinned against the host's own constants by the same
+#: host-side test that pins the event names.
 SupportKind = Literal["derivation", "rule"]
 
 
 @dataclass(frozen=True, slots=True)
 class SupportRef:
-    """One thing a belief rode on, as the ledger carries it (increment 4).
+    """One thing a belief rode on, as the ledger carries it.
 
     **Why this is not a bare string.** Both endpoints are strings -- a node id and
-    a memory id -- so a flat tuple of them would make every reader guess which it
-    was holding, and look up ``ax_1`` on the board as though it were an atom. That
-    is the call ADR-0129 made for the board's own record ("the endpoint's kind is
-    carried, not inferred") and RFC-0063 §2 decision 1 made for the ledger's
-    operations ("a reader never has to recover the polarity from an argument"). It
-    would be strange for the seat those two increments were building toward to be
-    the one place the kind is dropped.
+    a memory id -- so a flat tuple of them would make every reader guess which one
+    it was holding, and look up ``ax_1`` as though it were an atom. The rule
+    everywhere else here is that an endpoint's kind is carried rather than
+    inferred, just as a reader never has to recover a polarity from an argument.
+    It would be strange for this to be the one place the kind is dropped.
 
     Attributes:
         kind: Which sort of thing ``ref`` names.
@@ -156,54 +151,51 @@ class LedgerOp:
             one explicitly. ``None`` means the value is derived rather than
             stated -- e.g. ``confirm``/``refute``, whose effect on confidence is
             the Laplace fold the view replays.
-        partner: The other side of a ``hold``. A tie is a *pair* (ADR-0081's
-            ``_TIE_ARITY``), so a hold names both members; ``None`` for every
-            other operation.
+        partner: The other side of a ``hold``. A tie is a *pair*, so a hold names
+            both members; ``None`` for every other operation.
         origin_event_id: The host event this operation was derived from, or
             ``None`` when the operation could not be attributed to one (see
             :mod:`~doxa.governance.derive`).
         at: Wall-clock time of the originating event (epoch seconds), or
             ``None`` when unknown. Ordering is the position in the series, not
             this field.
-        reason: Why this evidence was booked, one of :data:`EVIDENCE_REASONS`
-            . ``None`` for every operation that is not
-            a ``confirm``/``refute``, and for an entry derived from a row whose
-            reason was absent or outside the vocabulary -- an unrecognised word
-            is dropped rather than guessed, for the same reason
-            :class:`SupportRef` carries its ``kind`` instead of inferring it.
+        reason: Why this evidence was booked, one of :data:`EVIDENCE_REASONS`.
+            ``None`` for every operation that is not a ``confirm``/``refute``, and
+            for an entry derived from a row whose reason was absent or outside the
+            set -- an unrecognised word is dropped rather than guessed, for the
+            same reason :class:`SupportRef` carries its ``kind`` instead of
+            inferring it.
 
-            **Not a new operation.** RFC-0063 §2 decision 1 refused to fold
-            ``confirm``/``refute`` into one operation with a polarity argument
-            so a reader never has to recover the polarity from an argument;
-            adding the reason as an *attribute* runs the same way -- it takes
-            material away from the reader's guesswork rather than adding to it.
-            The seven operations are unchanged.
+            **Not a new operation.** ``confirm`` and ``refute`` were deliberately
+            not folded into one operation with a polarity argument, so that a
+            reader never has to recover the polarity from an argument; adding the
+            reason as an *attribute* runs the same way, taking material away from
+            the reader's guesswork rather than adding to it. The seven operations
+            are unchanged.
 
-            **Not a reserved seat either.** ``supported_by`` was named in
-            advance and sat in later; this column is added the moment it is
-            written, which is the other half of what RFC-0063 §6 permits
-            (adding a column is allowed, repurposing one is not).
-        session_id: **Reserved** (the provenance seat).
-            Left ``None``: the host's persisted event rows carry no session id
-            (the base ``Event`` has none), so nothing truthful can be put here
-            until the write side supplies it.
-        supported_by: What the target rested on **at the time of this operation**
-            (RFC-0064 increment 4, ADR-0133 -- the reserved support seat, now
-            filled). That is the seat's whole value: "this ``refute`` arrived
-            after everything holding the belief up was gone" becomes readable from
-            the series alone, without the board. Empty for a belief that was never
-            put there by a derivation (97.2% of atoms in vivo) and for
-            every operation about a rule.
+            **Not a reserved seat either.** ``supported_by`` was named in advance
+            and sat in later; this column was added the moment it was written,
+            which is the other half of the same promise -- adding a column is
+            allowed, repurposing one is not.
+        session_id: **Reserved** -- the provenance seat. Left ``None`` when a
+            host's persisted rows carry no session id, since nothing truthful can
+            be put here until the write side supplies one.
+        supported_by: What the target rested on **at the time of this operation**.
+            That is the whole value of the column: "this ``refute`` arrived after
+            everything holding the belief up was gone" becomes readable from the
+            series alone, without consulting the host's state. Empty for a belief
+            no derivation put there -- the large majority of them -- and for every
+            operation about a rule.
 
-            The reservation held in the sense RFC-0063 §6 required -- no existing
-            column changed meaning, no reader broke, nothing was rewritten -- but
-            **the seat's declared type did not**: it was ``tuple[str, ...]``, and
-            what has to sit in it is a set of *typed* endpoints (see
-            :class:`SupportRef`). Reserving a seat and reserving its dimensions
-            turned out to be different acts.
-        valid_at: **Reserved** (the temporality seat). The Stage 3
-            DSL carries time as syntax; until then a ledger entry
-            knows when it was *written* (``at``), not when its claim holds.
+            This seat was reserved in advance, and the reservation held in the
+            sense that mattered: no existing column changed meaning, no reader
+            broke, nothing was rewritten. **Its declared type did not hold.** The
+            seat was ``tuple[str, ...]`` and what has to sit in it is a set of
+            *typed* endpoints (see :class:`SupportRef`), so reserving a seat and
+            reserving its dimensions turned out to be different acts.
+        valid_at: **Reserved** -- the temporality seat. A later form may carry
+            time as syntax; until then a ledger entry knows when it was *written*
+            (``at``), not when its claim holds.
     """
 
     op: OpKind
@@ -217,8 +209,8 @@ class LedgerOp:
     at: float | None = None
     reason: EvidenceReason | None = None
     # Reserved seats -- see the class docstring. Adding a column is allowed;
-    # repurposing one is not. ``supported_by`` is no longer
-    # reserved: RFC-0064 increment 4 sat down in it.
+    # repurposing one is not. ``supported_by`` is no longer reserved: it has been
+    # sat in.
     session_id: str | None = None
     supported_by: tuple[SupportRef, ...] = ()
     valid_at: float | None = None

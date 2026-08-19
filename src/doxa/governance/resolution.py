@@ -31,10 +31,8 @@ are parsed here. A host that had to build ``Expr`` objects would need the solver
 library to speak to governance at all; taking text keeps the contract something a
 foreign host can satisfy with a string.
 
-Depends only on the shared pure leaf (``kernel/lib/smt``, the frozen solver
-library, brought inside the kernel by ADR-0122) and on the governance tier's own
-logic (``kernel/governance/tms``, which joined this package in RFC-0028 Phase 2's
-last migration, ADR-0125).
+Depends only on the bundled solver (:mod:`doxa.solver`) and on this package's own
+revision logic (:mod:`doxa.governance.revision`).
 """
 
 from __future__ import annotations
@@ -220,7 +218,7 @@ def _resolve(
     Only when that choice cannot be made is the pair tested for being a *tie* --
     an independent judgement rather than something read off the absent decision,
     because revision also gives up in cases that are not ties at all (a conflict
-    among rule instances names no belief to ask about; ADR-0081 decision 1).
+    among rule instances names no belief to ask about).
     """
     fact_target = select_verified_revision_target(
         unsat_core,

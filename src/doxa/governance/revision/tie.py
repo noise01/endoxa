@@ -13,9 +13,9 @@ tie surfaced only as a warning log in
 This module decides when a tie is well-formed enough to ask the user about, and
 what each answer would have to ground for the answer to actually settle it.
 
-Scope: **any pair the revision preference cannot separate** -- two
-beliefs sharing a preference band (``kernel.governance.tms.preference``). RFC-0042 could
-only generalise from the 1.0 case and wrote the gate as "both inviolable"; 1.0 is
+Scope: **any pair the revision preference cannot separate** -- two beliefs
+sharing a preference band (:mod:`.preference`). An earlier form of this gate had
+only the 1.0 case to generalise from and was written as "both inviolable"; 1.0 is
 now one band among others. What that newly admits is every *fallible*
 equal-confidence pair, and since ``interlocutor_confidence`` is a constant, that
 means every clash between two things the user said.

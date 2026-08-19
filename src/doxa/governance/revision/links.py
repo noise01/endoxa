@@ -1,55 +1,40 @@
-"""Vocabulary-link constraint synthesis for the SMT consistency check (/0030/0031).
+"""Turning predicate links into clauses the consistency check can see.
 
-Unit propagation detects a functional-exclusion clash in-beat and
-escalates it, but the deeper anytime tier -- the full SMT consistency check
-(:mod:`.revision`) -- has no way to *represent* the clash: functional exclusion
-is not part of the axiom network, so the solver returns SAT and the TMS revision
-loop never fires (ADR-0056 known limitation (a); baseline resolution rate 0.0 in
-``paper/05_evaluation.md`` §5.14).
+A clash between single-valued predicates can be detected the moment it happens,
+but the SMT consistency check has no way to *represent* one: exclusion between
+predicates is not part of the axiom set, so the solver answers SAT and revision
+never fires. This module closes that gap by synthesising the clauses.
 
-This module closes that gap (RFC-0029 §5, decision (b) "ground clause"). For a
-predicate declared single-valued (in ``settings.functional_predicates`` -- the
-same config the blackboard bootstrap uses, ADR-0056 decision 3), two atoms that
-share their leading arguments but differ in the final value cannot both hold. We
-synthesize the ground clause ``Not(And(atomA, atomB))`` for each such pair
-currently held true. Because both atoms are asserted, the clause is directly
-UNSAT without any unique-names / distinctness assumption: term distinctness is
-already baked in at detection time by ADR-0038 canonicalization (the values are
-compared as strings and differ). This deliberately sidesteps the fallible
-equality-atom question (``backlog.md`` §5 "項レベルの同一性") -- a future
-increment moving to the general axiom ``forall x,y,z. P(x,y) & P(x,z) -> y=z``
-plus a fallible ``Not(Eq(...))`` would reopen it (移行余地).
-That increment has no evidence pulling for it yet: the in-vivo residual it would
-serve measures zero across every run to date, and the ``adversarial`` load
-cannot produce one by construction (RFC-0024 §3 mechanism C dropped coined
-proper nouns for common-noun entities repeated verbatim). The counter that would
-show otherwise is ``missed_irreducible_term_drift`` on the corpus arm
-; read it before reopening this.
+For a predicate declared single-valued, two atoms that share their leading
+arguments but differ in the final value cannot both hold, so the ground clause
+``Not(And(atomA, atomB))`` is emitted for each such pair currently held true.
+Both atoms being asserted is what makes that clause directly UNSAT without any
+unique-names assumption: the values are compared as strings and differ, so term
+distinctness is settled before the clause is built. This deliberately sidesteps
+the question of *fallible* equality between terms -- moving to the general axiom
+``forall x, y, z. P(x, y) & P(x, z) -> y = z`` with a defeasible ``Not(Eq(...))``
+would reopen it.
 
-The same "detected but unrepresentable" gap holds for the other innate logical
-forms the vocabulary asset records, so their clause synthesis lives here too:
-:func:`inter_predicate_exclusion_clauses` (pairwise antonym / exclusion class,
-RFC-0030) and:func:`implication_clauses` (defeasible implication,
-RFC-0031) build their constraints from the acquired links instead of config, but
-are otherwise the same ground-clause construction.
+The same "detected but unrepresentable" gap holds for the other link forms, so
+their clause synthesis lives here too. :func:`inter_predicate_exclusion_clauses`
+(pairwise antonym or exclusion class) and :func:`implication_clauses` (defeasible
+implication) build their constraints from the links rather than from
+configuration, but are otherwise the same ground-clause construction.
 
 Those three are *violation* clauses: each is emitted only for a constraint the
 belief set currently breaks, which is what a contradiction check and its revision
-need to see. :func:`backward_implication_clauses` is the module's one *derivation*
-clause source: a belief-verification query asks whether a target
-follows, not whether something is broken, so the violation gate would emit nothing
-and leave the acquired vocabulary invisible to ``verify_belief``. It walks the
-implication links backwards from the target instead. The distinction matters --
-ADR-0072's agreement discipline requires every tier to read the same *link set*,
-not to synthesize the same *clauses* from it.
+need to see. :func:`backward_implication_clauses` is the one *derivation* clause
+source here. A verification query asks whether a target follows, not whether
+something is broken, so the violation gate would emit nothing and leave the links
+invisible to it; this walks the implication links backwards from the target
+instead. The distinction is narrow and it matters: every tier must read the same
+*link set*, not synthesise the same *clauses* from it.
 
-Pure and basis-independent (governance tier): stdlib, sibling
-:mod:`.facts`, :mod:`doxa.solver`, and the vocabulary asset's atom
-grammar (:func:`~doxa.syntax.parse_atom` -- governance stands on
-vocabulary, which is the asset DAG's permitted direction). Clauses are built from
-the belief *node-id strings* via :func:`parse_fact_to_expr`, the same parser
-:func:`.revision.build_assumptions` uses, so a synthesized clause's atom Exprs are
-identical to the assumption Exprs and the solver correlates them.
+Pure: stdlib, the sibling :mod:`.facts`, :mod:`doxa.solver`, and the atom grammar
+in :mod:`doxa.syntax`. Clauses are built from the belief *node-id strings* via
+:func:`parse_fact_to_expr`, the same parser :func:`.engine.build_assumptions`
+uses, so a synthesised clause's atom expressions are identical to the assumption
+expressions and the solver correlates them.
 """
 
 from __future__ import annotations
@@ -204,9 +189,8 @@ def functional_exclusion_clauses(
     functional exclusion *means*, so it cannot hold for an acquired link and not
     for a declared one.
 
-    Returns an empty list when ``functional_predicates`` is empty (the production
-    default, ADR-0056 decision 3), leaving the consistency check byte-for-byte
-    unchanged for every caller that does not opt in.
+    Returns an empty list when ``functional_predicates`` is empty, which leaves the
+    consistency check byte-for-byte unchanged for every caller that does not opt in.
 
     Args:
         beliefs: Mapping of belief node ID to its data (``truth_value`` etc.).
@@ -246,9 +230,9 @@ def inter_predicate_exclusion_clauses(
 ) -> list[Expr]:
     """Synthesize ``Not(And(a, b))`` clauses for every inter-predicate exclusion clash held true.
 
-    Generalizes :func:`functional_exclusion_clauses` from the intra-predicate
-    value swap to the inter-predicate forms (RFC-0030, closing ADR-0068 limitation
-    (a) for pairwise antonym / exclusion class). For each pair of true atoms that
+    Generalises :func:`functional_exclusion_clauses` from the intra-predicate value
+    swap to the inter-predicate forms -- pairwise antonym and exclusion class. For
+    each pair of true atoms that
     share their *whole* argument tuple but whose predicates are declared mutually
     exclusive, emit a ground exclusion clause. Mirrors the inter-predicate arm of
     :func:`.propagation.propagate` (excluded predicate on the identical argument
@@ -309,11 +293,10 @@ def implication_clauses(
 ) -> list[Expr]:
     """Synthesize ``Implies(antecedent, consequent)`` clauses for every implication clash held.
 
-    Closes the last of the innate logical forms (RFC-0027 §10-1: three exclusion
-    kinds plus implication) that unit propagation detects but the SMT tier cannot
-    represent (RFC-0031, closing ``backlog.md`` §0 item 1 (a)). For each true atom
-    ``p(args)`` whose predicate implies ``q`` and whose ``q(args)`` is on the board
-    held **false**, emit the ground implication. Both polarities are already
+    Closes the last of the link forms -- three exclusion kinds plus implication --
+    that can be detected directly but that the SMT tier cannot otherwise represent.
+    For each true atom ``p(args)`` whose predicate implies ``q`` and whose
+    ``q(args)`` is held **false**, emit the ground implication. Both polarities are already
     assumptions, so the clause is directly UNSAT and the TMS revision loop fires.
 
     ``implication_targets`` maps a predicate to the predicate names it implies. Unlike
@@ -382,21 +365,19 @@ def backward_implication_clauses(
 ) -> list[Expr]:
     """Synthesize the implication clauses that could let ``target`` be derived.
 
-    Belief verification (``verify_belief``) asks whether an atom follows
-    from the rest of the beliefs under the active constraints. Until now it saw only
-    the axiom network, so a consequence the *acquired* vocabulary licenses came back
-    ``NOT_ENTAILED``: the system could derive ``p(c)`` from a ritual link ``q => p``
-    on the propagation tier but could not confirm it on the SMT tier. That
-    asymmetry made ``verification`` usage credit structurally unreachable for coined
-    symbols, which is what pinned the vocabulary economy's second usage kind at zero
-    (ADR-0089 known limitation (d)).
+    Verifying a belief asks whether an atom follows from the rest of them under
+    the active constraints. Given only the axiom set, a consequence that the
+    *links* license comes back as not entailed: a system can derive ``p(c)`` from
+    a link ``q => p`` on the propagation side and still fail to confirm it on the
+    SMT side. That asymmetry makes a whole class of derivations invisible to
+    verification.
 
-    :func:`implication_clauses` cannot fill the gap. It gates on a
-    *violated* implication -- antecedent true, consequent on the board held false --
-    because emitting an implication for an absent consequent would let the solver
-    derive it, which is forward materialization rather than contradiction resolution
-    . In a verification query the target is dropped from the assumptions
-    in both polarities and is not held false, so that gate emits nothing.
+    :func:`implication_clauses` cannot fill the gap. It gates on a *violated*
+    implication -- antecedent true, consequent held false -- because emitting an
+    implication for an absent consequent would let the solver derive it, which is
+    forward materialisation rather than contradiction resolution. In a
+    verification query the target is dropped from the assumptions in both
+    polarities and is not held false, so that gate emits nothing.
     Derivation is exactly what this query wants, so this synthesizer inverts the walk:
     start at the target and collect the links that could conclude it.
 
@@ -409,7 +390,7 @@ def backward_implication_clauses(
     depending on the shape of the link graph: ``r => q => p`` must verify ``p`` from
     ``r`` the same way one hop does. The cost is linear in the reachable link count.
 
-    ADR-0034 is preserved: the clauses are implications *toward* the target, never
+    The verification invariant holds: the clauses are implications *toward* the target, never
     the target as a premise, so nothing here lets ``target`` prove itself. Exclusion
     links are deliberately not supplied -- ``Not(And(p, q))`` yields the entailment of
     a *negation*, and a ``verify_belief`` target is a plan precondition, always
@@ -484,7 +465,7 @@ def functional_exclusion_partner(
     confidence-driven :func:`.revision.select_verified_revision_target`).
 
     Returns the first such partner (pairwise clashes have one; a 3+-value pileup is
-    resolved one partner per beat, ADR-0064), or ``None`` when ``node_id`` is not a
+    resolved one partner at a time), or ``None`` when ``node_id`` is not a
     functional atom or has no conflicting partner.
 
     Carries the same arity floor as the two clause synthesizers: supersession is

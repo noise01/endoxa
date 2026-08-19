@@ -362,7 +362,7 @@ class TestBackwardImplicationClauses:
         assert entails(beliefs, clauses, "cat(felix)") == "NOT_ENTAILED"
 
     def test_target_does_not_prove_itself(self) -> None:
-        # ADR-0034: the target sits on the board at face value, which is exactly the
+        # The target sits in the belief set at face value, which is exactly the
         # probe environment's setup. Only OTHER beliefs may entail it, and here the
         # antecedent is missing, so the answer must stay NOT_ENTAILED.
         beliefs = dict([_true("animal(felix)")])

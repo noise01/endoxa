@@ -134,7 +134,7 @@ class TestBackwardCompatibility:
 class TestEqualConfidenceTie:
     """When the preference ranks two settling candidates alike, nothing is picked.
 
-    Before RFC-0043 the selector returned the first candidate whose flip restored
+    An earlier selector returned the first candidate whose flip restored
     consistency. Since ``sorted`` is stable, equal-confidence candidates kept the
     order the UNSAT core arrived in -- so which belief got retracted was decided by
     the solver. These tests fix the replacement rule: the band is judged as a whole.
@@ -221,9 +221,9 @@ class TestHypothesisIsReadFromBeliefContext:
     """The hypothesis preference reads the key the blackboard actually writes.
 
     ``add_atom`` takes a ``role`` argument and stores it under ``belief_context``;
-    ``BeliefNode`` has no ``role`` field. Reading ``role`` -- as the selectors did
-    until RFC-0043 -- therefore never matched a production belief, so the policy
-    of retracting a conjecture before an assertion was inert.
+    ``BeliefNode`` has no ``role`` field. Reading ``role`` therefore never matched
+    a real belief, which left the policy of retracting a conjecture before an
+    assertion inert.
     """
 
     def test_belief_context_hypothesis_outranks_a_lower_confidence_assertion(self) -> None:
@@ -276,7 +276,7 @@ class TestVocabularyDerivedClauses:
         }
         core, mapping = _core_with_vocab(beliefs, constraints)
 
-        # Pre-ADR-0072 behavior: with no constraints the flip looks like a fix.
+        # Without the link clauses the flip looks like a fix.
         assert select_verified_revision_target(core, beliefs, mapping, [])[0] == "animal(x)"
 
         # With them, no fact flip resolves, so the fact path declines (the rule path

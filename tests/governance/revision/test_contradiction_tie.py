@@ -83,7 +83,7 @@ class TestPreferenceGate:
     """A tie is where the *preference* runs out, not where confidence hits 1.0.
 
     The gate asks whether the two beliefs share a preference band. Confidence 1.0
-    is one band among others, so the case RFC-0042 could generalise from falls out
+    is one band among others, so the case the older gate generalised from falls out
     rather than being its own rule -- and every fallible equal-confidence pair now
     comes in with it.
     """
@@ -96,7 +96,7 @@ class TestPreferenceGate:
         assert select_tie_question_target(core, beliefs, mapping, [_EXCLUSION_RULE]) is None
 
     def test_equal_confidence_fallible_pair_is_a_tie(self) -> None:
-        # The case RFC-0043 opens. Two user assertions carry the same interlocutor
+        # Two user assertions carry the same interlocutor
         # confidence, so nothing in the preference tells them apart.
         beliefs = {"alive(felix)": _user(confidence=0.95), "dead(felix)": _user(confidence=0.95)}
         core, mapping = _core_for(beliefs, [_EXCLUSION_RULE])
@@ -117,9 +117,9 @@ class TestPreferenceGate:
         assert select_tie_question_target(core, beliefs, mapping, [_EXCLUSION_RULE]) is None
 
     def test_inviolable_hypothesis_is_not_a_tie(self) -> None:
-        # RFC-0042 §3 predicted this would stop arriving here once the hypothesis
-        # branch read the right key: a hypothesis sits in its own band, so revision
-        # settles the pair rather than declining it.
+        # This stops arriving here once the hypothesis branch reads the right key:
+        # a hypothesis sits in its own band, so revision settles the pair rather
+        # than declining it.
         beliefs = _exclusion_tie()
         beliefs["dead(felix)"] = {"belief_context": "hypothesis", "confidence": 1.0, "truth_value": True}
         core, mapping = _core_for(beliefs, [_EXCLUSION_RULE])
@@ -140,7 +140,7 @@ class TestDeterminism:
 
 
 class TestPolarity:
-    """The four rows of the RFC-0042 §4 table, through the real solver."""
+    """The four rows of the tie table, through the real solver."""
 
     def test_same_truth_value_splits_the_pair(self) -> None:
         # alive=T, dead=T -> "yes" keeps alive and denies dead.

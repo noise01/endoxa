@@ -234,7 +234,7 @@ class TestRuleOperations:
 
 
 class TestPositiveControl:
-    """RFC-0063 §7 criterion 4: hold, supersede and ground actually stand up."""
+    """Hold, supersede and ground actually stand up."""
 
     def test_the_three_rare_operations_appear_in_one_series(self):
         rows = [
@@ -288,12 +288,12 @@ class TestTheSupportSeat:
         assert op.supported_by == (SupportRef(kind="derivation", ref="cat(mike)"),)
 
     def test_a_belief_nobody_derived_carries_nothing(self):
-        """97.2% of atoms in vivo, and the class RFC-0064 §3-2 keeps outside OUT."""
+        """The large majority of beliefs, and the class kept outside OUT."""
         (op,) = derive_ledger([_row("AtomAddedEvent", _atom("cat(mike)", {"truth_value": True}))]).ops
         assert op.supported_by == ()
 
     def test_a_second_support_is_added_by_its_own_event(self):
-        """The row ADR-0130 added so the second footing would exist anywhere at all."""
+        """The row that makes a second footing exist anywhere at all."""
         rows = [
             _row(
                 "AtomAddedEvent",

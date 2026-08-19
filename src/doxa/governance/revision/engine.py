@@ -110,8 +110,8 @@ def entails(
     assumptions: verifying whether ``target`` follows must not take
     ``target`` itself as a premise, or the query is vacuous -- a belief atom that
     is merely present would trivially entail itself (``P`` and ``Not(P)`` in the
-    same assumption set). This realizes ADR-0030's stated intent for cautious
-    verification: check whether a precondition is genuinely entailed by the *rest*
+    same assumption set). This is what cautious verification is for: checking
+    whether a precondition is genuinely entailed by the *rest*
     of the beliefs and the axiom network, rather than trusted at face value
     because it happens to sit on the blackboard.
 
@@ -177,7 +177,7 @@ def find_rule_culprits(
         active_rule_exprs: All currently active rule expressions (base + learned).
         defeasible_rule_exprs: The subset of active rules eligible for retraction.
         vocab: The vocabulary link sources whose ground clauses constrain the
-            re-check. ``None`` (the default) reproduces the pre-ADR-0072 behavior.
+            re-check. ``None`` (the default) re-checks without them.
 
     Returns:
         The defeasible rule expressions whose removal restores SAT.
@@ -214,13 +214,13 @@ def find_supporting_rules(
     independently --- the list comes back empty, and no later retraction will
     count as counter-evidence against the belief. That is the intended reading:
     losing one of two sufficient supports is not the loss of the belief's
-    footing, and RFC-0038 §3 already drew the line at support *disappearing*
-    rather than weakening. The bias is toward recording nothing.
+    footing: the line is drawn at support *disappearing* rather than weakening.
+    The bias is toward recording nothing.
 
     ``UNKNOWN`` (the deliberation budget ran out) never yields an edge either,
     whether it is the standing verdict or a re-check: a question that was not
-    answered must not decide which beliefs stay revisable later. ADR-0017 keeps
-    the same conservative reading for verification itself.
+    answered must not decide which beliefs stay revisable later. Verification
+    itself takes the same conservative reading.
 
     Pure (no events, no mutation), like every function in this module.
 
@@ -257,10 +257,10 @@ def find_link_culprits(
 ) -> list[PredicateLink]:
     """Find acquired vocabulary links whose retraction alone restores consistency.
 
-    The link-level twin of :func:`find_rule_culprits`. For each link
-    the acquisition ritual populated, the vocabulary clauses are **re-synthesized**
-    with just that link dropped (ADR-0072's discipline: the clause set is derived
-    from the constraints, never carried around) and consistency is re-checked. A
+    The link-level twin of :func:`find_rule_culprits`. For each link in the
+    constraint set, the clauses are **re-synthesised** with just that link dropped
+    -- the clause set is always derived from the constraints, never carried around
+    -- and consistency is re-checked. A
     link whose removal flips UNSAT to SAT is a culprit under the same single-fault
     assumption the rule search uses.
 
@@ -421,7 +421,7 @@ def select_verified_revision_target(  # noqa: PLR0913
         max_rounds: Optional E-matching round cap; an ``"UNKNOWN"`` re-check is
             treated conservatively as not resolving the conflict.
         vocab: The vocabulary link sources whose ground clauses constrain the
-            re-check. ``None`` (the default) reproduces the pre-ADR-0072 behavior.
+            re-check. ``None`` (the default) re-checks without them.
 
     Returns:
         The (node_id, data) of a fact whose flip restores consistency of its

@@ -1,36 +1,30 @@
 """Recovering the ledger from what the host already records.
 
-The intermediate form RFC-0063 §4 chose separates *the source of truth on the
-API* from *the source of truth in the implementation*: the ledger is the former,
-the blackboard and the existing stores stay the latter. This module is what makes
-that separation cost nothing at the write side -- it is a **read-only derivation**
-of the operation series from the host's persisted audit log. No write path
-changes; the ledger is a way of reading what already happened.
+The separation this rests on is between *the source of truth on the API* and
+*the source of truth in the implementation*: the ledger is the former, a host's
+own stores stay the latter. This module is what makes that separation cost
+nothing at the write side -- it is a **read-only derivation** of the operation
+series from a host's persisted audit log. No write path changes; the ledger is a
+way of reading what already happened.
 
-**Why the event log and not the current state.** RFC-0063 §4 names "blackboard,
-TMS, evidence counters, trace" as the derivation's inputs, but the current state
-alone cannot yield the series: a retraction is a flip that leaves no trace of
-the flip, and the reconstruction check (criterion 3) needs a series
-to reconstruct *from*. The audit log is the only place the host keeps the order
-of what it did, so it is the primary input; the board is what the derived view is
-then checked against (:func:`~doxa.governance.view.compare_to_state`).
+**Why the event log and not the current state.** The current state alone cannot
+yield the series: a retraction is a flip that leaves no trace of the flip, and
+checking a reconstruction needs a series to reconstruct *from*. An audit log is
+the only place a host keeps the order of what it did, so it is the primary
+input; the host's own state is what the derived view is then checked against
+(:func:`~doxa.governance.view.compare_to_state`).
 
-**The horizon.** The retention sweep prunes by event type, and until
-RFC-0065 increment ② its keep set was the three calibration types plus
-``MessageReceivedEvent`` -- not a single ledger-bearing type was in it. A host
-running that policy can have had governance operations pruned out from under it,
-and a derivation that stayed silent about that would be claiming a completeness
-it does not have. :class:`DerivedLedger` therefore reports the horizon (the
-earliest row it saw) rather than pretending the series starts at the beginning of
-time.
+**The horizon.** A host that prunes its audit log by event type can have had
+governance operations swept out from under it, and a derivation that stayed
+silent about that would be claiming a completeness it does not have.
+:class:`DerivedLedger` therefore reports the horizon -- the earliest row it saw
+-- rather than pretending the series starts at the beginning of time.
 
-**The horizon does not go away now that the sweep keeps these rows.** The host
-took :data:`LEDGER_EVENT_TYPES` into its keep set as a third consumer
-(``domains/memory/retention.py``), which is a measure that acts
-**forward**: runs already swept cannot be un-pruned, and a host is free to
-configure a policy that keeps less (the keep set is an argument, not a law here).
-So the horizon keeps meaning exactly what it meant -- the earliest row this
-derivation could read, which is not a claim of completeness.
+**Keeping the ledger-bearing types does not retire the horizon.** A retention
+policy acts *forward*: what was already swept cannot be un-swept, and a host
+remains free to configure one that keeps less. So the horizon keeps meaning
+exactly what it always meant -- the earliest row this derivation could read,
+which is not a claim of completeness.
 
 **Reading the host's event names.** An asset may not import
 ``doppelganger.events`` (the import-linter boundary; the asset has to travel to
@@ -99,11 +93,10 @@ SUPPORTED_BY_KEY = "supported_by"
 _SUPPORT_KIND_KEY = "kind"
 _SUPPORT_REF_KEY = "ref"
 
-#: Correlation id Reasoning stamps on its axiom batch-get (host constant, pinned
-#: by the same host-side test). The response to *this* request is the moment the
-#: rule store's content enters the ledger as beliefs -- RFC-0028 §8 open question
-#: 1 settled: the file/table is host initialization data, its content becomes
-#: governance (unresolved point 1).
+#: Correlation id a host stamps on its axiom batch-get, pinned by the same
+#: host-side test as the event names. The response to *this* request is the moment
+#: a rule store's content enters the ledger as beliefs: the file or table is host
+#: initialisation data, and its content becomes governance.
 AXIOM_LOAD_CORRELATION_ID = "reasoning_axiom_load"
 
 #: Memory type of a learned or base rule row.
@@ -126,9 +119,8 @@ class DerivedLedger:
             (see the module docstring on retention).
         rows_read: How many rows the derivation was handed.
         rows_unreadable: Rows whose payload could not be parsed as an object.
-            Counted rather than dropped silently, for the same reason the diary
-            renders an unreadable broadcast instead of skipping it (ADR-0118
-            decision 3).
+            Counted rather than dropped silently: a reader that quietly skipped
+            them would be reporting a series it cannot vouch for.
     """
 
     ops: tuple[LedgerOp, ...]
@@ -245,8 +237,8 @@ def _operations(
 
     A row may legitimately stand for none: ``BeliefSupportRecordedEvent`` updates
     the running support state and returns nothing, because gaining a second
-    footing is not a governance operation on the belief (ADR-0130 -- the claim and
-    the credence are both untouched).
+    footing is not a governance operation on the belief: neither the claim nor the
+    credence is touched.
     """
     if record.event_type == ATOM_ADDED:
         return _atom_operations(record, state)
@@ -426,8 +418,8 @@ def _hold_operations(record: _Record) -> list[LedgerOp]:
     The detection event is what the ledger records, not the self-model's
     ``RevisionTieAskEvent``: being unable to settle is the governance layer's
     judgement, while deciding to *ask* about it is the host's dialogue policy
-    (ADR-0081 decision 1 keeps those two apart, and an exported ledger should not
-    require its host to have a user to talk to).
+    The two are kept apart deliberately: a ledger should not require its host to
+    have someone to talk to.
     """
     node_a = str(record.payload.get("node_a", ""))
     node_b = str(record.payload.get("node_b", ""))
@@ -447,11 +439,10 @@ def _hold_operations(record: _Record) -> list[LedgerOp]:
 def _rule_load_operations(record: _Record) -> list[LedgerOp]:
     """Map the axiom batch-get response onto one ``assert`` per rule.
 
-    This is where RFC-0028 §8 open question 1 lands: the rule store is host
-    initialization data, and the moment its content is loaded is the moment it
-    enters the ledger as beliefs (RFC-0063 §2 decision 3 puts learned rules in
-    the ledger's primary scope). A base (non-defeasible) axiom is asserted and
-    never retracted; only a defeasible rule has a retraction path.
+    A rule store is host initialisation data, and the moment its content is loaded
+    is the moment it enters the ledger as beliefs: learned rules are in the
+    ledger's primary scope. A base, non-defeasible axiom is asserted and never
+    retracted; only a defeasible rule has a retraction path.
 
     Only the response to Reasoning's own axiom load is read: other batch-gets
     (memory recall, paging) return the same row shape but are not the rule set

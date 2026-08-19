@@ -1,39 +1,34 @@
 """The current view as a derivation of the ledger.
 
-RFC-0063 declares that **the current view is derived from the ledger**. This
-module is that declaration executed: fold the operation series and what comes out
-is what the system holds -- including the beliefs it holds *without deciding
-between them*.
+**The current view is derived from the ledger.** Fold the operation series and
+what comes out is what the agent holds -- including the beliefs it holds *without
+deciding between them*.
 
 ``UNRESOLVED`` is the point of the exercise. Being unable to settle a
-contradiction has been a real state since ADR-0082, and the system already speaks
-about it (the tie question), but it has never had a name in the state itself: a
-held tie was indistinguishable from two ordinary beliefs that happen to conflict.
-Here it is a value of :attr:`BeliefState.state`, and both sides carry it.
+contradiction is a real state, and a system can speak about it by asking, but it
+usually has no name in the state itself: a held tie is indistinguishable from two
+ordinary beliefs that happen to conflict. Here it is a value of
+:attr:`BeliefState.state`, and both sides carry it.
 
-**Releasing a hold is derived, never asserted**. A hold
-is not a lock: it is the name of "the preference cannot separate these two"
-, so it ends when the preference *can* -- when a later operation moves
-one side out of the other's band. :attr:`BeliefState.released_by` reads back which
-operation did it.
+**Releasing a hold is derived, never asserted.** A hold is not a lock. It is the
+name of "the preference cannot separate these two", so it ends when the
+preference *can* -- when a later operation moves one side out of the other's
+band. :attr:`BeliefState.released_by` reads back which operation did it.
 
-**The synthetic-layer 1.0 rule** (``backlog.md`` §6(e)(v), RFC-0023 §6) is stated
-once, here: ``ground`` is the only operation that confers 1.0, so a
-grounded answer is the one operation that always separates a band and directly
-releases a hold. Evidence can release one too, but only by actually moving a
-credence -- which is the difference between settling a tie and outranking it.
+**Only ``ground`` confers 1.0.** That makes a grounded answer the one operation
+which always separates a band, and therefore the one that directly releases a
+hold. Evidence can release a hold too, but only by actually moving a credence --
+which is the difference between settling a tie and outranking it.
 
-**On replaying the Laplace fold.** ``confirm``/``refute`` carry no confidence:
-the host's event says only which way the evidence points, and the credence is
-computed by ``domains/blackboard/evidence.py``. To reconstruct a view
-that can be *checked* against the board, this module replays the same arithmetic.
-That is a fourth copy of Laplace smoothing in the codebase (ADR-0075 counted
-three), and it is deliberate: an asset may not import host domain code, and a
-view that gave up on confidence could not tell a correct derivation from one that
-lost half its evidence. The copy collapses when the evidence rule itself moves
-into ``kernel/governance`` in the Phase 2 migration (increment 3).
+**On replaying the Laplace fold.** ``confirm`` and ``refute`` carry no
+confidence: a booking says only which way the evidence points, and the credence
+is computed wherever it was booked. To reconstruct a view that can be *checked*
+against the host's own state, this module replays the same arithmetic. That
+duplicates a rule the host also holds, and it is deliberate: a view that gave up
+on confidence could not tell a correct derivation from one that had lost half its
+evidence.
 
-Pure and basis-independent (stdlib only).
+Pure and dependency-free: stdlib only.
 """
 
 from __future__ import annotations
@@ -118,19 +113,19 @@ class BeliefState:
 
 @dataclass(frozen=True, slots=True)
 class ViewEquivalence:
-    """The result of checking a reconstructed view against the live board.
+    """The result of checking a reconstructed view against a host's live state.
 
-    RFC-0063 §7 criterion 3 asks for zero breakage between the view the ledger
-    reconstructs and what the blackboard actually holds. Several numbers rather
-    than one, because they fail for different reasons and blurring them would
+    What is wanted is zero disagreement between the view the ledger reconstructs
+    and what the host actually holds. Several numbers rather than one, because
+    they fail for different reasons and blurring them would
     hide the interesting one.
 
     ``UNRESOLVED`` has no counterpart here, and that is not an omission: **the
     board cannot represent a hold**. Two beliefs the preference could not
-    separate sit on it as two ordinary beliefs, which is the gap this increment
-    closes. There is nothing on the other side for the ledger's status to break
-    against, so it is fixed by the positive control instead (RFC-0063 §7
-    criterion 4) rather than by this comparison.
+    separate sit on it as two ordinary beliefs, which is the gap the derived view
+    closes. There is nothing on the other side for the ledger's status to be
+    checked against, so it is pinned by a positive control rather than by this
+    comparison.
 
     Attributes:
         compared: Targets checked on both sides.
@@ -140,10 +135,9 @@ class ViewEquivalence:
         confidence_breaks: Targets whose credence disagrees among those whose
             evidence the ledger could fully account for.
         unattributed: Targets excluded from the credence comparison because the
-            two sides' evidence tallies disagree. **Expected to be zero**: this
-            column was the write side's silences, and RFC-0065 increment 1 closed
-            them -- the board no longer moves a credence without recording it
-            . Two things can still put a target here, and they are not
+            two sides' evidence tallies disagree. **Expected to be zero** once the
+            write side records every credence move it makes. Two things can still
+            put a target here, and they are not
             the same:
 
             - **A regression in the recording path.** A booking the board folded
@@ -270,9 +264,9 @@ def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool)
     (``truth_flipped`` is only set for a node already there), a changed truth
     value, and no stated confidence.
 
-    Found by RFC-0065 increment 1 -- **while the write side was silent
-    this could not be seen**, because ``unattributed`` was expected to be non-zero
-    for other reasons and a target landing there said nothing in particular.
+    **While the write side is silent about any of its credence moves this cannot
+    be seen**, because ``unattributed`` is then expected to be non-zero for other
+    reasons and a target landing there says nothing in particular.
     """
     return (
         op.op == "ground"

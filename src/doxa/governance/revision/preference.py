@@ -4,15 +4,14 @@ Two selectors read the same preference: :mod:`~doxa.governance.revision.engine`
 picks which belief to retract, and :mod:`~doxa.governance.revision.tie` decides
 when no belief can be picked and the user has to be asked instead. They are two
 faces of one judgement -- "does the preference separate these beliefs?" -- and
-writing the derivation twice would let one of them be fixed alone (ADR-0081
-made the same argument about the polarity rule).
+writing the derivation twice would let one of them be fixed alone.
 
 The unit of that judgement is the **band**: beliefs the preference ranks
 identically. Being unsettleable is not the solver failing to decide, it is the
 *preference* failing to decide -- so it is a property of a band, not of a
 confidence value. Confidence 1.0 is then just one band among others, which is
-why ADR-0082 could replace the old "both inviolable" tie gate with band
-equality (had only the 1.0 case to generalise from).
+why band equality can replace the older "both inviolable" tie gate, which had
+only the 1.0 case to generalise from.
 
 Pure and basis-independent (governance tier): stdlib only.
 """
@@ -26,9 +25,8 @@ if TYPE_CHECKING:
 
 # The blackboard stores an atom's role under ``belief_context``: ``add_atom``
 # takes a ``role`` argument and writes it to that key, and ``BeliefNode`` has no
-# ``role`` field at all. Reading ``role`` here -- as the selectors did
-# until RFC-0043 -- therefore never matched in production, leaving the TMS policy
-# of retracting a conjecture before an assertion inert.
+# ``role`` field at all. Reading ``role`` here therefore never matched anything,
+# which left the policy of retracting a conjecture before an assertion inert.
 _ROLE_KEY = "belief_context"
 _HYPOTHESIS = "hypothesis"
 
@@ -97,7 +95,7 @@ def revision_candidates(
     order the UNSAT core happened to arrive in, and since Python's sort is stable
     that solver-dependent order decided which belief got retracted. Lexicographic
     order is arbitrary but fixed -- the same discipline, for the same reason, that
-    ADR-0081 applied to picking which atom a tie question is asked about.
+    applies to picking which atom a tie question is asked about.
     """
     candidates = [
         (node_id, data)
@@ -130,11 +128,11 @@ def is_unsettleable_pair(left: dict[str, Any], right: dict[str, Any]) -> bool:
     """Whether the preference cannot separate two conflicting beliefs.
 
     This is the tie gate. It subsumes the "both inviolable" test it replaced:
-    two beliefs at confidence 1.0 share the band ``(True, 1.0)``, so the case
-    ADR-0081 handled falls out as one band among others rather than as its own
-    rule. What it newly admits is every *fallible* equal-confidence pair -- and
-    since ``interlocutor_confidence`` is a constant, that includes every clash
-    between two things the user said.
+    two beliefs at confidence 1.0 share the band ``(True, 1.0)``, so that case
+    falls out as one band among others rather than as its own rule. What it newly
+    admits is every *fallible* equal-confidence pair -- and where a source's
+    confidence is a constant, that includes every clash between two things the
+    same source said.
 
     Hypotheses are excluded. Checking ``left`` alone is enough: a shared band
     already implies the two agree on being hypotheses. The exclusion is

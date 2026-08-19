@@ -3,7 +3,7 @@
 What is under test is mostly ``UNRESOLVED``: that a hold puts *both* sides in it,
 that it is released by derivation rather than by an operation of its own
 , and that a grounded answer is what always releases it
--- the synthetic-layer 1.0 rule (``backlog.md`` §6(e)(v), RFC-0023 §6) stated as
+-- the rule that only ``ground`` confers 1.0, stated as
 behaviour instead of as a note.
 
 The credence replay is tested for the properties it has to preserve, not for
@@ -83,7 +83,7 @@ class TestUnresolved:
         assert view["alive(felix)"].status == HELD
 
     def test_the_release_names_the_operation_that_did_it(self):
-        # RFC-0063 §2 decision 2: releasing is a derivation, so it still has to
+        # Releasing is a derivation, so it still has to
         # be readable back with a time and an author.
         ops = [*_tied_pair(), _op("ground", "dead(felix)", truth_value=False, confidence=1.0, origin_event_id="g1")]
         view = reconstruct_view(ops)
@@ -136,7 +136,7 @@ class TestEvidenceReplay:
         assert reconstruct_view(ops)["p(x)"].confidence < 1.0
 
     def test_a_retract_hands_the_tally_to_the_new_claim(self):
-        # ADR-0078: the counts support what the belief currently claims, so the
+        # The counts support what the belief currently claims, so the
         # counter-evidence that motivated the flip reads as one count *for* the
         # opposite claim.
         view = reconstruct_view(

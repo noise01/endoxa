@@ -1,32 +1,24 @@
 """Reading a belief's footing off its supports.
 
-A belief that was put on the board by a derivation rests on something. Whether
-it still does is a question about that belief's *supports*, and this module is
-the fold that answers it: given what became of each support, what may be said
-about the belief.
+A belief that a derivation put there rests on something. Whether it still does is
+a question about that belief's *supports*, and this module is the fold that
+answers it: given what became of each support, what may be said about the belief.
 
-Four answers, not three. RFC-0064 §3-2 named three states -- no support at all,
-at least one alive (IN), all gone (OUT) -- and the fourth falls out of how the
-host stores supports: a support names its antecedent by id, and the antecedent
-can leave the board without being refuted (paged out under memory pressure,
-ADR-0042, or evicted by activation decay). "The board no longer holds it" is not
-"it turned out to be false", and collapsing the two would make eviction a source
-of counter-evidence -- exactly the false refutation RFC-0064 §7-4 requires to
-stay at zero. So ``absent`` is its own state and yields ``indeterminate``.
+Four answers, not three. The obvious three are no support at all, at least one
+still alive, and all of them gone. The fourth falls out of how supports are
+stored: a support names its antecedent by id, and an antecedent can leave a
+host's state without ever being refuted -- paged out under memory pressure, or
+evicted by decay. "It is no longer held" is not "it turned out to be false", and
+collapsing the two would turn eviction into a source of counter-evidence. So
+``absent`` is a state of its own, and it yields ``indeterminate``.
 
 The module takes *resolved states*, never the supports themselves. Deciding
-whether an antecedent is alive means looking at a board, and the kernel does not
-know what a board is (principle 1). The host resolves; this folds.
-That split is also why the support record's shape stays in the host: nothing
-here needs to read it.
+whether an antecedent is alive means looking at a host's state, and this package
+does not know what that state is. The host resolves; this folds. That split is
+also why the shape of a support record stays with the host: nothing here needs to
+read it.
 
-**Nothing calls this yet.** Placing the judgement and firing on it are separate
-increments on purpose: a single increment that did both would
-produce measurements consistent with two different explanations, which is the
-mistake ADR-0110 and ADR-0116 each recorded once. Increment 3 writes the
-resolver and decides what an OUT is worth.
-
-This module is pure: stdlib typing only, no state, no I/O.
+Pure: stdlib typing only, no state, no I/O.
 """
 
 from __future__ import annotations
@@ -41,21 +33,19 @@ if TYPE_CHECKING:
 #: ``alive``: the thing it names still holds. ``dead``: it was refuted or
 #: retracted -- the antecedent flipped false, the rule was retracted, the link
 #: was defeated. ``absent``: it can no longer be found. The last is deliberately
-#: not ``dead``: a paged-out antecedent says nothing against what it
-#: once supported, and ADR-0080 known limitation (c) -- that a support lost to
-#: paging is indistinguishable from one that never existed -- is precisely what
-#: keeping this state separate makes measurable.
+#: not ``dead``: an antecedent that was paged out says nothing against what it
+#: once supported, and keeping the state separate is the only thing that makes
+#: "lost track of" distinguishable from "never had one".
 SupportState = Literal["alive", "dead", "absent"]
 
 #: What may be said about a belief, given its supports.
 #:
-#: ``unsupported``: it was not put on the board by a derivation at all (a user
-#: assertion, an observation, an innate axiom -- 97.2% of atoms in vivo,
-#: ADR-0128), so the absence of support says nothing against it and it is outside
-#: this question. ``in``: at least one support holds. ``out``: it had supports
-#: and every one of them is gone -- the transition RFC-0064 was written to make
-#: observable. ``indeterminate``: nothing alive is left, but what is missing left
-#: the board rather than failed, so no conclusion is available.
+#: ``unsupported``: no derivation put it there at all -- a user assertion, an
+#: observation, an axiom -- so the absence of support says nothing against it and
+#: it is outside this question. In practice this is the large majority of
+#: beliefs. ``in``: at least one support holds. ``out``: it had supports and every
+#: one of them is gone. ``indeterminate``: nothing alive is left, but what is
+#: missing went away rather than failed, so no conclusion is available.
 SupportVerdict = Literal["unsupported", "in", "out", "indeterminate"]
 
 ALIVE: SupportState = "alive"

@@ -1,8 +1,8 @@
 """Tests for defeasible-rule culprit search.
 
 ``find_rule_culprits`` drops one defeasible rule at a time and asks whether the
-theory turns SAT. Until ADR-0072 the vocabulary-derived ground clauses were not
-part of that theory, so a contradiction raised purely by the vocabulary looked
+theory turns SAT. Before the link-derived ground clauses were part of that
+theory, a contradiction raised purely by the links looked
 resolvable by dropping *any* rule -- every defeasible rule was reported as a
 culprit and ``choose_revision_candidate`` could retract an innocent one. These
 tests drive the real solver.
@@ -41,7 +41,7 @@ class TestVocabularyOnlyContradiction:
         assert find_rule_culprits(beliefs, [unrelated], [unrelated], _FUNCTIONAL) == []
 
     def test_without_constraints_the_innocent_rule_looks_guilty(self) -> None:
-        # The pre-ADR-0072 behavior, kept as the regression's other half: with the
+        # The behaviour without them, kept as the regression's other half: with the
         # clause absent the theory is SAT to begin with, so dropping any rule
         # "restores" consistency.
         beliefs = _clashing_residences()

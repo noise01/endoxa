@@ -10,7 +10,7 @@ solvers are complete, so the contract is strict: verdicts must both be decisive
 Only the SAT/UNSAT *verdict* is compared, never the satisfying model: distinct
 solvers legitimately return different models for the same SAT formula.
 
-This module discharges ADR-0050's commitment that the frozen solver's reliability
+This module discharges the commitment that the frozen solver's reliability
 is guarded by a Z3 differential oracle.
 """
 

@@ -75,7 +75,7 @@ def _core(*node_ids: str) -> tuple[list[Any], dict[str, str]]:
 
 
 class TestSelectRevisionTarget:
-    """RFC-0022, ADR-0022: fallibility is expressed by confidence < 1.0, not role.
+    """Fallibility is expressed by confidence < 1.0, not by role.
 
     User testimony carrying interlocutor confidence (0.95) is now revisable; only a
     confidence of 1.0 (ask-user grounding) or an unmarked belief stays

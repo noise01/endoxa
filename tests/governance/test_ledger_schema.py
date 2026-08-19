@@ -1,8 +1,8 @@
 """Tests for the ledger's operation schema.
 
 The schema carries two promises beyond holding fields: an entry is never edited
-after the fact (frozen), and the schema itself evolves by addition only (RFC-0063
-§2 decision 4 / §6). The reserved columns are part of that promise, so they are
+after the fact (frozen), and the schema itself evolves by addition only. The
+reserved columns are part of that promise, so they are
 tested for being *present and empty* rather than ignored -- a seat that quietly
 disappeared would break the increment that comes to sit in it.
 """
@@ -21,7 +21,7 @@ class TestOperationSet:
         assert LEDGER_OPS == ("assert", "retract", "supersede", "confirm", "refute", "hold", "ground")
 
     def test_confirm_and_refute_stay_separate_operations(self):
-        # RFC-0063 §2 decision 1: folding them into one "record evidence"
+        # Folding them into one "record evidence"
         # operation with a polarity argument was considered and rejected, so a
         # reader never has to recover the polarity from an argument.
         assert "confirm" in LEDGER_OPS
@@ -41,7 +41,7 @@ class TestEntryIsAppendOnly:
         assert op.valid_at is None
 
     def test_reserved_seats_can_be_filled_without_touching_the_others(self):
-        # The design constraint RFC-0063 §6 puts on the reservation: a later
+        # The design constraint on a reservation: a later
         # increment fills a seat by *adding* to an entry, not by repurposing a
         # column that already means something.
         op = LedgerOp(
@@ -58,7 +58,7 @@ class TestEntryIsAppendOnly:
 class TestTheReasonColumn:
     """A column added the moment it was written.
 
-    The other half of what RFC-0063 §6 permits. ``supported_by`` was named in
+    The other half of what the promise permits. ``supported_by`` was named in
     advance and filled later, which tested the reservation; ``reason`` was never
     reserved at all, which tests the promise the reservation was an instance of.
     Both are additions, and neither changes what an existing column means.
@@ -66,7 +66,7 @@ class TestTheReasonColumn:
 
     def test_the_seven_operations_did_not_change(self):
         # The reason is an *attribute* of confirm/refute, not an eighth operation:
-        # RFC-0063 §2 decision 1 keeps the granularity, and adding a column is the
+        # The granularity is kept, and adding a column is the
         # only way this schema is allowed to grow.
         assert LEDGER_OPS == ("assert", "retract", "supersede", "confirm", "refute", "hold", "ground")
 
@@ -82,15 +82,15 @@ class TestTheReasonColumn:
 
 
 class TestTheSupportSeat:
-    """RFC-0064 increment 4 sat down in the seat RFC-0063 §6 reserved."""
+    """Sitting down in the seat the schema reserved."""
 
     def test_the_kind_is_carried_not_inferred(self):
         """Both endpoints are strings; only the kind says which board to look on.
 
         A flat ``tuple[str, ...]`` -- the type the seat was originally declared
         with -- would have made a reader guess, and look up a memory id on the
-        board as though it were an atom. ADR-0129 refused that for the board's own
-        record and RFC-0063 §2 decision 1 refused it for the operations.
+        it up as though it were an atom. The same refusal applies to a host's own
+        record and to the operations.
         """
         refs = (SupportRef(kind="derivation", ref="cat(mike)"), SupportRef(kind="rule", ref="ax_1"))
 

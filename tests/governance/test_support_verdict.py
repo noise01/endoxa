@@ -8,7 +8,7 @@ it can distinguish (-- a 0 that never moves is not a result).
 The distinction that matters is the last row of the table: ``out`` and
 ``indeterminate`` must not be the same answer. If they were, increment 3 would
 turn a paged-out antecedent into counter-evidence against everything
-that once rested on it, which is the false refutation RFC-0064 §7-4 fixes at zero.
+that once rested on it, which is the false refutation this keeps at zero.
 """
 
 import pytest
