@@ -1,10 +1,10 @@
-"""Z3 differential oracle for the frozen homemade SMT solver (ADR-0058, ADR-0050).
+"""Z3 differential oracle for the frozen doxa SMT solver (ADR-0058, ADR-0050).
 
 Renders one backend-neutral :mod:`tests.differential.formula` AST into both the
-homemade solver (``doxa.solver``) and Z3, checks satisfiability with
+doxa solver (``doxa.solver``) and Z3, checks satisfiability with
 each, and compares the verdicts. On the quantifier-free propositional fragment both
 solvers are complete, so the contract is strict: verdicts must both be decisive
-(SAT/UNSAT) and equal. A homemade UNKNOWN is recorded as an *incompleteness*
+(SAT/UNSAT) and equal. A doxa UNKNOWN is recorded as an *incompleteness*
 (``agree=False``) rather than silently tolerated -- that too is a signal worth a red.
 
 Only the SAT/UNSAT *verdict* is compared, never the satisfying model: distinct
@@ -33,19 +33,19 @@ if TYPE_CHECKING:
 Verdict = Literal["SAT", "UNSAT", "UNKNOWN"]
 
 
-def render_homemade(node: Formula) -> Expr:
-    """Render a neutral formula AST into a homemade-solver expression."""
+def render_doxa(node: Formula) -> Expr:
+    """Render a neutral formula AST into a doxa-solver expression."""
     match node:
         case NVar(name):
             return Bool(name)
         case NNot(child):
-            return Not(render_homemade(child))
+            return Not(render_doxa(child))
         case NImplies(left, right):
-            return Implies(render_homemade(left), render_homemade(right))
+            return Implies(render_doxa(left), render_doxa(right))
         case NAnd(children):
-            return And(*(render_homemade(c) for c in children))
+            return And(*(render_doxa(c) for c in children))
         case NOr(children):
-            return Or(*(render_homemade(c) for c in children))
+            return Or(*(render_doxa(c) for c in children))
     msg = f"Unknown formula node: {node!r}"
     raise TypeError(msg)
 
@@ -78,9 +78,9 @@ def _z3_verdict(node: Formula) -> Verdict:
     return "UNKNOWN"
 
 
-def _homemade_verdict(node: Formula) -> Verdict:
+def _doxa_verdict(node: Formula) -> Verdict:
     solver = Solver()
-    solver.add(render_homemade(node))
+    solver.add(render_doxa(node))
     return solver.check()
 
 
@@ -89,7 +89,7 @@ class DifferentialResult:
     """Outcome of checking one formula against both solvers."""
 
     formula_repr: str
-    homemade: Verdict
+    doxa: Verdict
     z3: Verdict
     agree: bool
 
@@ -98,14 +98,14 @@ def differential_check(node: Formula) -> DifferentialResult:
     """Check ``node`` with both solvers and compare their SAT/UNSAT verdicts.
 
     ``agree`` is True only when both verdicts are decisive (SAT/UNSAT) and equal.
-    A homemade UNKNOWN on this complete fragment counts as a disagreement.
+    A doxa UNKNOWN on this complete fragment counts as a disagreement.
     """
-    homemade = _homemade_verdict(node)
+    doxa = _doxa_verdict(node)
     z3_result = _z3_verdict(node)
-    agree = homemade == z3_result and homemade in ("SAT", "UNSAT")
+    agree = doxa == z3_result and doxa in ("SAT", "UNSAT")
     return DifferentialResult(
         formula_repr=format_formula(node),
-        homemade=homemade,
+        doxa=doxa,
         z3=z3_result,
         agree=agree,
     )

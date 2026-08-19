@@ -23,16 +23,16 @@ _SMOKE_SEED = 20260720
 _SMOKE_COUNT = 60
 
 
-def test_homemade_solver_agrees_with_z3_on_seeded_batch() -> None:
+def test_doxa_solver_agrees_with_z3_on_seeded_batch() -> None:
     """A fixed seeded batch of propositional formulas must agree between solvers."""
     rng = random.Random(_SMOKE_SEED)
     verdicts: set[str] = set()
     disagreements = []
     for _ in range(_SMOKE_COUNT):
         result = differential_check(generate_formula(rng))
-        verdicts.add(result.homemade)
+        verdicts.add(result.doxa)
         if not result.agree:
-            disagreements.append(f"homemade={result.homemade} z3={result.z3} on {result.formula_repr}")
+            disagreements.append(f"doxa={result.doxa} z3={result.z3} on {result.formula_repr}")
 
     assert not disagreements, "solver differential disagreement(s):\n" + "\n".join(disagreements)
     # Sanity: the seeded batch must exercise both verdicts, else the guard is vacuous.

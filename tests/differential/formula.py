@@ -1,13 +1,13 @@
 """Random propositional-formula generator for the Z3 differential oracle (ADR-0058).
 
 Produces a *backend-neutral* AST (the small frozen node types below) so a single
-generated structure can be rendered into both the frozen homemade solver
+generated structure can be rendered into both the frozen doxa solver
 (``doxa.solver``) and Z3 by ``tests.differential.z3_differential``. That
 double-render is the crux of differential testing: the two solvers see the same
 formula and must agree on SAT/UNSAT.
 
 The fragment is deliberately restricted to quantifier-free propositional logic
-(boolean variables under And/Or/Not/Implies). Both the homemade CDCL SAT core and
+(boolean variables under And/Or/Not/Implies). Both the doxa CDCL SAT core and
 Z3 are *complete* on this fragment, so any SAT/UNSAT disagreement is a genuine
 solver bug rather than an incompleteness artefact (ADR-0050 reliability guard).
 
