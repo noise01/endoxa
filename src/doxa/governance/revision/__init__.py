@@ -1,10 +1,50 @@
-"""Truth maintenance: what to give up when beliefs conflict.
+from doxa.governance.revision.engine import (
+    RevisionDecision,
+    build_assumptions,
+    check_consistency,
+    choose_revision_candidate,
+    entails,
+    find_link_culprits,
+    find_rule_culprits,
+    find_supporting_rules,
+    select_revision_target,
+    select_verified_revision_target,
+)
+from doxa.governance.revision.facts import parse_fact_to_expr
+from doxa.governance.revision.links import (
+    PredicateConstraints,
+    PredicateLink,
+    backward_implication_clauses,
+    functional_exclusion_clauses,
+    functional_exclusion_partner,
+    implication_clauses,
+    inter_predicate_exclusion_clauses,
+    predicate_clauses,
+)
+from doxa.governance.revision.preference import is_hypothesis
+from doxa.governance.revision.tie import ContradictionTie, select_tie_question_target
 
-Detecting a contradiction is the easy half. This package is the other half --
-finding which assumptions are actually responsible, ordering them by how
-readily each may be given up, and recognising the case where the two sides are
-equally credible, which is not a tie to break arbitrarily but a state with a
-name.
-"""
-
-__all__: list[str] = []
+__all__ = [
+    "ContradictionTie",
+    "PredicateConstraints",
+    "PredicateLink",
+    "RevisionDecision",
+    "backward_implication_clauses",
+    "build_assumptions",
+    "check_consistency",
+    "choose_revision_candidate",
+    "entails",
+    "find_link_culprits",
+    "find_rule_culprits",
+    "find_supporting_rules",
+    "functional_exclusion_clauses",
+    "functional_exclusion_partner",
+    "implication_clauses",
+    "inter_predicate_exclusion_clauses",
+    "is_hypothesis",
+    "parse_fact_to_expr",
+    "predicate_clauses",
+    "select_revision_target",
+    "select_tie_question_target",
+    "select_verified_revision_target",
+]

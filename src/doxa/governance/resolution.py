@@ -1,0 +1,385 @@
+"""What the governance layer decides to do next (RFC-0063 §2, ADR-0120).
+
+:mod:`~doxa.governance.ledger` says what happened and
+:mod:`~doxa.governance.view` says what is currently the case. This
+module is the third face: **given a set of beliefs and the constraints they live
+under, which ledger operations does governance perform?**
+
+Without it the contract is only half a contract. An external host can read a
+ledger, but reading is not being governed -- to be governed it has to be able to
+hand its beliefs over and get back "retract this one", "supersede that one",
+"these two cannot be separated, hold both". Those answers are exactly the seven
+operations, so the decision surface returns :class:`~doxa.governance.ledger.LedgerOp`
+rather than a bespoke verdict type.
+
+**This is wiring, not new judgement.** Every decision below is made by the same
+pure functions ``modules.reasoning._resolve_contradiction`` calls, in the same
+order, with the same conditions. What changes is *where the order lives*: it was
+written out by hand in each caller (the ladder's stage-4 host said so in its own
+docstring), and a wiring written twice is a wiring that gets fixed once
+(ADR-0082 decision 6). A host-side test pins this order against production.
+
+**Scope: the belief tier.** Beliefs, learned rules and the ties between them --
+the ledger's primary object (RFC-0063 §2 decision 3). Production additionally
+arbitrates *acquired vocabulary links* (``find_link_culprits``, ADR-0074), which
+belong to asset ① and whose ledger §2 decision 3 deliberately keeps separate. So
+this surface does not reduce production to a single call, and it is not meant to:
+whether the two ledgers are ever shown as one view is a later judgement.
+
+**Input is text.** Rules and hard constraints arrive as TPTP axiom strings and
+are parsed here. A host that had to build ``Expr`` objects would need the solver
+library to speak to governance at all; taking text keeps the contract something a
+foreign host can satisfy with a string.
+
+Depends only on the shared pure leaf (``kernel/lib/smt``, the frozen solver
+library, brought inside the kernel by ADR-0122) and on the governance tier's own
+logic (``kernel/governance/tms``, which joined this package in RFC-0028 Phase 2's
+last migration, ADR-0125).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+from doxa.governance.ledger import LedgerOp
+from doxa.governance.revision import (
+    ContradictionTie,
+    check_consistency,
+    choose_revision_candidate,
+    find_rule_culprits,
+    functional_exclusion_partner,
+    select_tie_question_target,
+    select_verified_revision_target,
+)
+from doxa.solver import parse_fof
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Sequence
+
+    from doxa.solver import Expr
+
+#: ``actor`` stamped on the operations governance itself decides. A host that
+#: applies one writes it under whatever role its own board uses (production's TMS
+#: writes ``agent``); what the ledger records here is that the decision came from
+#: the governance layer rather than from a speaker.
+GOVERNANCE_ACTOR = "governance"
+
+#: Confidence a soft-retracted rule is driven to (``modules.reasoning._retract_rule``).
+#: The row is kept so the rule can be re-learned -- which is the ledger's own
+#: stance: the entry does not disappear, it stops counting.
+RETRACTED_RULE_CONFIDENCE = 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class Belief:
+    """One belief handed to governance.
+
+    Attributes:
+        target: The belief's identity -- its expression string (``mortal(socrates)``).
+        truth_value: What it claims.
+        confidence: Its credence. 1.0 is inviolable and only ask-user grounding
+            confers it (ADR-0018).
+        context: The role it was born under. The revision preference reads this to
+            tell a conjecture from an assertion (``hypothesis``, ADR-0013), and
+            getting it wrong silently disables that preference (ADR-0082 decision 7).
+    """
+
+    target: str
+    truth_value: bool
+    confidence: float
+    context: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class Rule:
+    """One rule constraining the beliefs, as a TPTP axiom.
+
+    Attributes:
+        name: How the rule is named in an operation that retracts it.
+        axiom: The rule as a TPTP ``fof`` string.
+        confidence: Its credence, weighed against a belief's when governance picks
+            what to give up.
+        defeasible: Whether it may be retracted at all. A base axiom is not a
+            revision candidate; only a learned rule is (ADR-0010).
+    """
+
+    name: str
+    axiom: str
+    confidence: float
+    defeasible: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class Constraints:
+    """What the beliefs must be consistent with.
+
+    Attributes:
+        rules: Implication-style rules. All of them constrain; the defeasible ones
+            are additionally revision candidates.
+        hard_axioms: Inviolable TPTP axioms -- exclusion links, EUF assignment
+            rules, sentinel disequalities, equality links (ADR-0060, ADR-0061).
+            They join the consistency check and are never revision candidates.
+        functional_predicates: Predicates whose final argument is a *value*, so a
+            newer claim supersedes the older one it excludes rather than
+            contradicting it (recency supersession, ADR-0068). Only consulted for
+            ``escalated``.
+    """
+
+    rules: tuple[Rule, ...] = ()
+    hard_axioms: tuple[str, ...] = ()
+    functional_predicates: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True, slots=True)
+class GovernanceOutcome:
+    """What governance decided, as ledger operations.
+
+    Attributes:
+        consistent: Whether the beliefs are consistent under the constraints.
+            ``True`` means there was nothing to decide.
+        ops: The operations governance performs, in the order it performs them.
+            Empty when consistent, and also when a conflict is real but nothing is
+            revisable -- the correct detect-but-hold-silently outcome.
+        hold: The pair a ``hold`` names, carrying what an answer would ground
+            (ADR-0081). ``None`` unless the operations contain a ``hold``.
+        undecided: A conflict was found and no operation was decided at all --
+            neither a retraction nor a hold. Distinct from a hold: this is the
+            pile-up that no single question can settle (ADR-0081's arity gate), and
+            a host that reports "asked" for it would be lying about its own state.
+    """
+
+    consistent: bool
+    ops: tuple[LedgerOp, ...] = ()
+    hold: ContradictionTie | None = None
+    undecided: bool = False
+
+    @property
+    def retraction(self) -> LedgerOp | None:
+        """The operation that withdrew something, or ``None`` if nothing was withdrawn."""
+        return next((op for op in self.ops if op.op in {"retract", "supersede"}), None)
+
+
+@dataclass(frozen=True, slots=True)
+class _Theory:
+    """The parsed constraint set, and the rule objects aligned with their exprs."""
+
+    active: list[Expr]
+    defeasible: list[tuple[Rule, Expr]] = field(default_factory=list)
+
+
+def govern(
+    beliefs: Sequence[Belief],
+    constraints: Constraints,
+    *,
+    escalated: str | None = None,
+    max_rounds: int | None = None,
+) -> GovernanceOutcome:
+    """Decide what the governance layer does with these beliefs.
+
+    Args:
+        beliefs: The belief set to govern.
+        constraints: The rules and inviolable axioms they live under.
+        escalated: The atom whose assertion raised the conflict, when the host
+            knows it. Only used for recency supersession: a newer functional claim
+            supersedes the older one it excludes, whatever their confidences, because
+            a state change is not a miscalibration (ADR-0068).
+        max_rounds: E-matching round budget for the consistency checks; ``None``
+            uses the solver default.
+
+    Returns:
+        The operations to perform. A consistent belief set yields none.
+    """
+    board = _board(beliefs)
+    theory = _theory(constraints)
+
+    superseded = _supersede(board, escalated, constraints.functional_predicates)
+    if superseded is not None:
+        return GovernanceOutcome(consistent=False, ops=(superseded,))
+
+    verdict, unsat_core, expr_to_node_id = check_consistency(board, theory.active, max_rounds=max_rounds)
+    if verdict != "UNSAT":
+        return GovernanceOutcome(consistent=True)
+
+    return _resolve(board, theory, unsat_core, expr_to_node_id, max_rounds=max_rounds)
+
+
+def _resolve(
+    board: dict[str, dict[str, Any]],
+    theory: _Theory,
+    unsat_core: list[Expr],
+    expr_to_node_id: dict[str, str],
+    *,
+    max_rounds: int | None,
+) -> GovernanceOutcome:
+    """Pick what to give up, exactly as ``_resolve_contradiction`` does.
+
+    The order is the load-bearing part: the verified fact target first, then the
+    defeasible rules that could be the culprit instead, then one choice between
+    them by confidence with the tie broken toward the more local fact revision.
+    Only when that choice cannot be made is the pair tested for being a *tie* --
+    an independent judgement rather than something read off the absent decision,
+    because revision also gives up in cases that are not ties at all (a conflict
+    among rule instances names no belief to ask about; ADR-0081 decision 1).
+    """
+    fact_target = select_verified_revision_target(
+        unsat_core,
+        board,
+        expr_to_node_id,
+        theory.active,
+        max_rounds=max_rounds,
+    )
+    rule_culprits = _rule_culprits(board, theory)
+
+    fact_confidence = fact_target[1].get("confidence", 1.0) if fact_target is not None else None
+    decision = choose_revision_candidate(fact_confidence, [rule.confidence for rule in rule_culprits])
+
+    if decision is None:
+        tie = select_tie_question_target(
+            unsat_core,
+            board,
+            expr_to_node_id,
+            theory.active,
+            max_rounds=max_rounds,
+        )
+        if tie is None:
+            # Real conflict, nothing revisable and no answerable pair: governance
+            # holds its peace rather than inventing an operation (ADR-0081).
+            return GovernanceOutcome(consistent=False, undecided=True)
+        return GovernanceOutcome(
+            consistent=False,
+            ops=(LedgerOp(op="hold", target=tie.node_a, partner=tie.node_b, actor=GOVERNANCE_ACTOR),),
+            hold=tie,
+        )
+
+    if decision.kind == "rule" and decision.rule_index is not None:
+        rule = rule_culprits[decision.rule_index]
+        return GovernanceOutcome(
+            consistent=False,
+            ops=(
+                LedgerOp(
+                    op="retract",
+                    target=rule.name,
+                    target_kind="rule",
+                    actor=GOVERNANCE_ACTOR,
+                    truth_value=True,
+                    confidence=RETRACTED_RULE_CONFIDENCE,
+                ),
+            ),
+        )
+
+    if fact_target is None:
+        return GovernanceOutcome(consistent=False, undecided=True)
+
+    node_id, data = fact_target
+    flipped = not data.get("truth_value", True)
+    ops = [
+        LedgerOp(op="retract", target=node_id, actor=GOVERNANCE_ACTOR, truth_value=flipped),
+        # The conflict named a set of beliefs and one of them was flipped; the rest
+        # were weighed against it and survived, which is evidence for them and costs
+        # nothing since the core is already in hand (ADR-0075).
+        *_corroborate_survivors(unsat_core, expr_to_node_id, revised=node_id),
+    ]
+    return GovernanceOutcome(consistent=False, ops=tuple(ops))
+
+
+def _rule_culprits(board: dict[str, dict[str, Any]], theory: _Theory) -> list[Rule]:
+    """Find the defeasible rules whose removal alone would restore consistency.
+
+    ``find_rule_culprits`` answers in exprs, so the rules are recovered by object
+    identity -- two rules can render to equal exprs and only identity keeps the
+    confidence and the name attached to the right one.
+    """
+    if not theory.defeasible:
+        return []
+    culprit_ids = {
+        id(expr) for expr in find_rule_culprits(board, theory.active, [expr for _rule, expr in theory.defeasible])
+    }
+    return [rule for rule, expr in theory.defeasible if id(expr) in culprit_ids]
+
+
+def _corroborate_survivors(
+    unsat_core: list[Expr],
+    expr_to_node_id: dict[str, str],
+    *,
+    revised: str,
+) -> list[LedgerOp]:
+    """Book a ``confirm`` for every belief the conflict suspected and kept (ADR-0075)."""
+    survivors = []
+    for core_expr in unsat_core:
+        node_id = expr_to_node_id.get(str(core_expr))
+        if node_id is not None and node_id != revised:
+            survivors.append(LedgerOp(op="confirm", target=node_id, actor=GOVERNANCE_ACTOR))
+    return survivors
+
+
+def _supersede(
+    board: dict[str, dict[str, Any]],
+    escalated: str | None,
+    functional_predicates: Collection[str],
+) -> LedgerOp | None:
+    """Retire the older claim a newer functional one displaces (ADR-0068).
+
+    Checked before consistency, as production does: functional exclusion says the
+    world moved, so the older belief was right when it was written and keeps its
+    confidence. That is what makes supersession the one path able to resolve two
+    inviolable beliefs -- the confidence policy never applies.
+    """
+    if escalated is None or not functional_predicates:
+        return None
+    partner = functional_exclusion_partner(escalated, board, functional_predicates)
+    if partner is None:
+        return None
+    node_id, data = partner
+    return LedgerOp(
+        op="supersede",
+        target=node_id,
+        actor=GOVERNANCE_ACTOR,
+        truth_value=not data.get("truth_value", True),
+        confidence=data.get("confidence", 1.0),
+    )
+
+
+def _board(beliefs: Sequence[Belief]) -> dict[str, dict[str, Any]]:
+    """Build the node-id -> data mapping the governance logic reads.
+
+    The role goes under ``belief_context`` because that is the key the blackboard
+    writes and the revision preference reads (ADR-0082 decision 7); ``role`` would
+    silently disable the hypothesis preference.
+    """
+    return {
+        belief.target: {
+            "truth_value": belief.truth_value,
+            "confidence": belief.confidence,
+            "belief_context": belief.context,
+            "node_type": "atom",
+        }
+        for belief in beliefs
+    }
+
+
+def _theory(constraints: Constraints) -> _Theory:
+    """Parse the constraint set, keeping each defeasible rule beside its expr.
+
+    Rules first, then the hard axioms: the same order the callers assembled by
+    hand, kept because the solver's UNSAT core is a set of these exprs and the
+    order it reports them in is what the downstream selectors iterate.
+    """
+    rule_exprs = [(rule, parse_fof(rule.axiom)[2]) for rule in constraints.rules]
+    hard_exprs = [parse_fof(axiom)[2] for axiom in constraints.hard_axioms]
+    return _Theory(
+        active=[expr for _rule, expr in rule_exprs] + hard_exprs,
+        defeasible=[(rule, expr) for rule, expr in rule_exprs if rule.defeasible],
+    )
+
+
+__all__ = [
+    "GOVERNANCE_ACTOR",
+    "RETRACTED_RULE_CONFIDENCE",
+    "Belief",
+    "Constraints",
+    "ContradictionTie",
+    "GovernanceOutcome",
+    "Rule",
+    "govern",
+]

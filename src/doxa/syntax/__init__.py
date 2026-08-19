@@ -6,4 +6,10 @@ predicate, its arity, its arguments. One parser, so two callers can never
 disagree about what an atom is.
 """
 
-__all__: list[str] = []
+from doxa.syntax.atoms import FUNCTIONAL_MIN_ARITY, ParsedAtom, parse_atom
+
+__all__ = [
+    "FUNCTIONAL_MIN_ARITY",
+    "ParsedAtom",
+    "parse_atom",
+]
