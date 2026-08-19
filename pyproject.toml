@@ -1,0 +1,121 @@
+[project]
+name = "doxa"
+version = "0.0.0"
+description = "Governed beliefs for LLM agents: an append-only ledger, SMT-checked consistency, defeasible revision, and calibration instruments."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "noise01" }]
+keywords = [
+    "agent",
+    "belief-revision",
+    "calibration",
+    "llm",
+    "smt",
+    "truth-maintenance",
+]
+# No license classifier: PEP 639 forbids pairing one with a `license`
+# expression, and the expression above is the authoritative statement.
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+# The core -- ledger, revision, solver -- takes one dependency: the TPTP grammar
+# the solver parses rules with. The two packages that need more are optional, so
+# governing beliefs never drags in a model framework or a graph library.
+dependencies = ["lark>=1.3.1"]
+
+[project.optional-dependencies]
+trace = ["pydantic>=2.12.5"]
+coverage = ["networkx[default]>=3.6.1"]
+
+[project.urls]
+Homepage = "https://github.com/noise01/doxa"
+Issues = "https://github.com/noise01/doxa/issues"
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.100",
+    "import-linter>=2.3",
+    "pytest>=9.0.3",
+    "ruff>=0.15.17",
+    # The solver's correctness is asserted against Z3 by differential tests, not
+    # by its own test suite alone.
+    "z3-solver>=4.13",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",  # conflicts with the formatter; trailing commas are its job
+    # The Apache-2.0 grant is stated once, in LICENSE and NOTICE, rather than
+    # repeated atop every file. Per-file headers are conventional for this
+    # licence but not required by it, and a notice restated a few hundred times
+    # is a few hundred places for it to drift out of agreement with itself.
+    "CPY001",
+    "D1",      # docstrings are required by review, not by lint
+    "D413",    # no blank line after the last docstring section
+    "PLR0911", # dispatch functions return early per branch
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "ANN001",
+    "ANN201",
+    "ANN202",
+    "D400",
+    "D415",
+    "INP001",
+    "PLR2004",
+    "S101",
+    "SLF001",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# strict-markers/strict-config: a mistyped marker or ini key must fail rather
+# than be silently ignored -- a check that cannot fail is not a check.
+addopts = ["--strict-markers", "--strict-config"]
+
+[tool.importlinter]
+root_package = "doxa"
+
+# The package is a DAG, and this states the whole of it: a layer may import the
+# layers below it and never the ones above. Reading it bottom-up --
+#
+#   syntax       parses an atom's shape; depends on nothing.
+#   solver       decides satisfiability; a frozen, self-contained SMT engine.
+#   governance   decides what to do about beliefs, using both.
+#   trace        records the series of thoughts; independent of the decision.
+#   instruments  measures everything and is imported by nothing, because a
+#                measure that its subject can reach is a measure its subject can
+#                move.
+#
+# A new top-level package is not in this list and would escape the rule in
+# silence, so the port owes a completeness test that every subpackage of `doxa`
+# appears here -- an enumeration without a check is an enumeration that rots.
+[[tool.importlinter.contracts]]
+name = "The package is a DAG"
+type = "layers"
+layers = [
+    "doxa.instruments",
+    "doxa.trace",
+    "doxa.governance",
+    "doxa.solver",
+    "doxa.syntax",
+]
