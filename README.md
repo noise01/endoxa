@@ -1,1 +1,90 @@
 # doxa
+
+**Governed beliefs for agents.** An append-only ledger, SMT-checked consistency,
+defeasible revision, and calibration instruments — a layer you give an agent,
+not a framework you build one inside.
+
+> **Status: pre-alpha.** The library is being extracted from the research system
+> it grew in, where it has run for months. Nothing is published yet and the API
+> shown below is the shape it lands in, not a promise.
+
+## The problem
+
+An LLM agent will tell you Socrates is mortal, and twenty turns later that he is
+immortal, and never notice. It has no place to put a claim other than its own
+context, no way to check a new claim against the ones it already made, and no
+record of why it believes any of them. Asking it to be consistent is asking the
+thing that lost track to keep track.
+
+doxa is the place to put them.
+
+## What it does
+
+- **Checks.** Beliefs and the rules they live under go to a bundled SMT solver,
+  which answers satisfiable, unsatisfiable, or *unknown* when its deliberation
+  budget runs out — a real answer, not a failure.
+- **Decides.** On a conflict it finds what is actually to blame and orders the
+  candidates by how readily each may be given up. A rule the agent *learned* may
+  be retracted; a rule it was given may not.
+- **Holds.** When two beliefs are equally credible, the conflict cannot be
+  settled from the inside. That is a state with a name, not a coin flip.
+- **Records.** Every operation is an entry in an append-only ledger. A retracted
+  belief keeps its row and stops counting, so the history of what the agent
+  believed survives the change.
+- **Measures.** Whether the agent's confidence matched its accuracy, over what it
+  claims to know, what it claims to be able to do, and when it chooses to ask.
+
+## Example
+
+```python
+from doxa.governance import Belief, Constraints, Rule, govern
+
+constraints = Constraints(
+    rules=[Rule(name="mortality", axiom="fof(m, axiom, ![X]: (human(X) => mortal(X)))")],
+)
+beliefs = [
+    Belief(target="human(socrates)", truth_value=True, confidence=1.0, context="user"),
+    Belief(target="mortal(socrates)", truth_value=False, confidence=0.6, context="agent"),
+]
+
+outcome = govern(beliefs, constraints)
+
+outcome.consistent  # False
+
+# The operations to perform, in order: here, retracting the 0.6-confidence
+# claim rather than the one the user asserted.
+outcome.ops
+```
+
+`govern` decides; it does not mutate. The operations it returns are what you
+append to the ledger and apply to your own store.
+
+## Install
+
+```bash
+pip install doxa
+```
+
+The core takes one dependency. Two packages need more and are opt-in:
+
+```bash
+pip install "doxa[trace]"     # the ordered series of an agent's propositions
+pip install "doxa[coverage]"  # how densely rules connect predicates
+```
+
+## Design notes
+
+- **The solver is bundled and frozen.** doxa answers about consistency without
+  reaching for an external prover. Its correctness is asserted differentially
+  against Z3 in dev-only tests rather than by its own suite alone.
+- **The ledger is the record, not a cache.** Operations are appended; the current
+  view is folded from them. An unsettleable conflict appears in that view as
+  `UNRESOLVED` rather than as a silent choice.
+- **Instruments are imported by nothing else.** A measure its subject can reach
+  is a measure its subject can move, so the dependency is forbidden by contract
+  and checked in CI.
+- **Requires Python 3.14+.**
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
