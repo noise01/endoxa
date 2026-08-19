@@ -32,7 +32,7 @@ def _clashing_residences() -> dict[str, dict[str, Any]]:
     }
 
 
-class TestVocabularyOnlyContradiction:
+class TestLinkOnlyContradiction:
     """A clash the rules have nothing to do with must not blame a rule."""
 
     def test_innocent_rule_is_not_a_culprit(self) -> None:
@@ -60,9 +60,9 @@ class TestGenuineRuleCulprit:
         guilty = _rule("fof(r, axiom, ![X] : (bird(X) => flies(X))).")
         assert find_rule_culprits(beliefs, [guilty], [guilty], _FUNCTIONAL) == [guilty]
 
-    def test_rule_culprit_alongside_an_unrelated_vocabulary_clash(self) -> None:
-        # Both a rule-forced contradiction (tweety) and a vocabulary clash (alice)
-        # are on the board. Dropping the rule leaves alice's clash, so no rule is a
+    def test_rule_culprit_alongside_an_unrelated_link_clash(self) -> None:
+        # Both a rule-forced contradiction (tweety) and a link clash (alice)
+        # are on the beliefs. Dropping the rule leaves alice's clash, so no rule is a
         # culprit -- alice's contradiction is resolved on its own beat by the fact
         # path, and the rule stays until its own conflict is the one
         # being examined.

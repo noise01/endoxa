@@ -17,8 +17,6 @@ grammar the revision path accepts, which is a change of behaviour rather than a
 tidy-up.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 
@@ -40,7 +38,7 @@ class ParsedAtom:
         return len(self.args)
 
     def key(self) -> str:
-        """Return the ``predicate/arity`` natural key (matches :meth:`VocabularySymbol.key`)."""
+        """Return the ``predicate/arity`` natural key."""
         return f"{self.predicate}/{self.arity}"
 
 

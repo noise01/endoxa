@@ -200,15 +200,15 @@ class TestBothCompletionsMustSettle:
         assert select_tie_question_target(core, beliefs, mapping, rules) is None
 
 
-class TestVocabularyDerivedTies:
-    """A tie raised by acquired vocabulary links, as Reasoning produces it."""
+class TestLinkDerivedTies:
+    """A tie raised by acquired links, as a host produces it."""
 
     def test_inter_predicate_exclusion_tie(self) -> None:
         constraints = PredicateConstraints(exclusion_targets={"alive": ("dead",)})
         beliefs = _exclusion_tie()
         clauses = predicate_clauses(beliefs, constraints)
         core, mapping = _core_for(beliefs, clauses)
-        tie = select_tie_question_target(core, beliefs, mapping, [], vocab=constraints)
+        tie = select_tie_question_target(core, beliefs, mapping, [], links=constraints)
         assert tie is not None
         assert tie.affirm_true == ("alive(felix)",)
         assert tie.affirm_false == ("dead(felix)",)
@@ -218,7 +218,7 @@ class TestVocabularyDerivedTies:
         beliefs = {"animal(felix)": _user(truth_value=False), "cat(felix)": _user()}
         clauses = predicate_clauses(beliefs, constraints)
         core, mapping = _core_for(beliefs, clauses)
-        tie = select_tie_question_target(core, beliefs, mapping, [], vocab=constraints)
+        tie = select_tie_question_target(core, beliefs, mapping, [], links=constraints)
         assert tie is not None
         assert tie.affirm_true == ("animal(felix)", "cat(felix)")
         assert tie.affirm_false == ()

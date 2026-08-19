@@ -16,14 +16,12 @@ only the 1.0 case to generalise from.
 Pure and basis-independent (governance tier): stdlib only.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# The blackboard stores an atom's role under ``belief_context``: ``add_atom``
+# The host's belief store stores an atom's role under ``belief_context``: ``add_atom``
 # takes a ``role`` argument and writes it to that key, and ``BeliefNode`` has no
 # ``role`` field at all. Reading ``role`` here therefore never matched anything,
 # which left the policy of retracting a conjecture before an assertion inert.
@@ -48,12 +46,12 @@ _DEFAULT_CONFIDENCE = 1.0
 def is_hypothesis(data: dict[str, Any]) -> bool:
     """Whether a belief was put forward as a conjecture rather than asserted.
 
-    Intuition posts its guesses this way. A hypothesis is the first
+    A host posts its guesses this way. A hypothesis is the first
     thing revision reaches for, ahead of an asserted belief of the very same
     confidence -- being offered as a guess is itself a reason to doubt it first.
 
     Known limitation: ``belief_context`` is not birth-fixed. It sits
-    outside the blackboard's provenance-key protection, so a belief rewritten by
+    outside the provenance keys that are fixed at birth, so a belief rewritten by
     ``_revise_fact`` (which passes ``role="agent"``) stops reading as a
     hypothesis. Making the distinction permanent belongs with the first-class
     provenance work (``backlog.md`` §6, "belief temporality" Stage 3).
@@ -136,7 +134,7 @@ def is_unsettleable_pair(left: dict[str, Any], right: dict[str, Any]) -> bool:
 
     Hypotheses are excluded. Checking ``left`` alone is enough: a shared band
     already implies the two agree on being hypotheses. The exclusion is
-    deliberate rather than inherited -- Intuition writes every conjecture at one
+    deliberate rather than inherited -- A host that writes every conjecture at one
     constant confidence, so admitting them would turn every clash between two of
     the system's own guesses into a question for the user. A conflict between
     conjectures asks for more evidence, not for someone else's attention.

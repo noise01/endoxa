@@ -37,7 +37,7 @@ def test_face_value_belief_is_not_self_entailing() -> None:
     """A belief present only at face value is NOT its own proof.
 
     The target atom is excluded from the assumptions, so a belief that merely
-    sits on the blackboard -- with no rule or other belief deriving it -- is
+    sits on the host's belief store -- with no rule or other belief deriving it -- is
     NOT_ENTAILED. This is the correction that lets cautious verification
      actually refute an unsupported precondition instead of trusting
     it because it happens to be present.

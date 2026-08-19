@@ -1,4 +1,4 @@
-"""Tests for vocabulary-link constraint synthesis (/0030/0031).
+"""Tests for predicate-link constraint synthesis.
 
 ``functional_exclusion_clauses`` turns a single-valued predicate holding two
 different final-argument values into an SMT ground clause so the consistency
@@ -118,7 +118,7 @@ class TestInterPredicateExclusionClauses:
         assert result == "SAT"
 
     def test_relation_is_undirected(self) -> None:
-        # Only ``dead -> alive`` is recorded (the ritual links the proposing symbol
+        # Only ``dead -> alive`` is recorded (the acquired links the proposing symbol
         # only), yet a clash asserted in either order must be caught: the relation is
         # treated undirected so the assertion-order blind spot is closed.
         beliefs = dict([_true("alive(socrates)"), _true("dead(socrates)")])
@@ -154,7 +154,7 @@ class TestInterPredicateExclusionClauses:
         assert len(inter_predicate_exclusion_clauses(beliefs, {"dead": {"alive"}})) == 1
 
 
-class TestVocabularyImplicationClauses:
+class TestLinkImplicationClauses:
     """Defeasible-implication clause synthesis."""
 
     def test_true_antecedent_with_false_consequent_is_unsat(self) -> None:
@@ -187,7 +187,7 @@ class TestVocabularyImplicationClauses:
         assert implication_clauses(beliefs, {"cat": {"animal"}}) == []
 
     def test_absent_consequent_yields_no_clause(self) -> None:
-        # No forward materialization: with animal(felix) off the board the clause set
+        # No forward materialization: with animal(felix) off the beliefs the clause set
         # stays empty, matching unit propagation's escalation condition.
         beliefs = dict([_true("cat(felix)")])
         assert implication_clauses(beliefs, {"cat": {"animal"}}) == []
@@ -204,7 +204,7 @@ class TestVocabularyImplicationClauses:
     def test_reverse_assertion_order_is_caught(self) -> None:
         # In-beat propagation reads only the newly asserted atom's links, so a
         # consequent asserted false *after* its antecedent is missed there. Scanning
-        # board pairs closes that blind spot at this deeper tier: the
+        # beliefs pairs closes that blind spot at this deeper tier: the
         # clause set does not depend on which atom arrived last.
         beliefs = dict([_false("animal(felix)"), _true("cat(felix)")])
         assert len(implication_clauses(beliefs, {"cat": {"animal"}})) == 1
@@ -226,7 +226,7 @@ class TestVocabularyImplicationClauses:
         assert len(implication_clauses(beliefs, {"cat": {"animal"}})) == 1
 
 
-class TestVocabularyClauses:
+class TestLinkClauses:
     """The aggregate synthesizer the detection and revision paths share."""
 
     def test_aggregates_all_three_forms(self) -> None:
@@ -309,7 +309,7 @@ class TestBackwardImplicationClauses:
     """
 
     def test_link_makes_the_consequence_entailed(self) -> None:
-        # The board holds the antecedent; the ritual link q => p is what carries
+        # The beliefs holds the antecedent; the acquired link q => p is what carries
         # the target. Without the clauses the query cannot see the link at all.
         beliefs = dict([_true("cat(felix)")])
         targets = {"cat": {"animal"}}
@@ -339,7 +339,7 @@ class TestBackwardImplicationClauses:
 
     def test_cyclic_links_terminate(self) -> None:
         # p => q => p. Expanding each predicate once bounds the walk; the target
-        # is still entailed from the antecedent actually on the board.
+        # is still entailed from the antecedent actually on the beliefs.
         beliefs = dict([_true("q(x1)")])
         targets = {"p": {"q"}, "q": {"p"}}
         clauses = backward_implication_clauses("p(x1)", targets)
@@ -351,7 +351,7 @@ class TestBackwardImplicationClauses:
         assert entails(beliefs, clauses, "animal(felix)") == "NOT_ENTAILED"
 
     def test_absent_antecedent_does_not_entail(self) -> None:
-        # The link is present but nothing on the board discharges it.
+        # The link is present but nothing on the beliefs discharges it.
         clauses = backward_implication_clauses("animal(felix)", {"cat": {"animal"}})
         assert entails({}, clauses, "animal(felix)") == "NOT_ENTAILED"
 

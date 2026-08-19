@@ -7,8 +7,6 @@ tested for being *present and empty* rather than ignored -- a seat that quietly
 disappeared would break the increment that comes to sit in it.
 """
 
-from __future__ import annotations
-
 import dataclasses
 
 import pytest
@@ -73,11 +71,11 @@ class TestTheReasonColumn:
     def test_an_entry_states_no_reason_by_default(self):
         assert LedgerOp(op="assert", target="mortal(socrates)").reason is None
 
-    def test_an_evidence_entry_carries_one_of_the_vocabulary(self):
+    def test_an_evidence_entry_carries_one_of_the_reasons(self):
         op = LedgerOp(op="refute", target="animal(mike)", reason="support_lost")
         assert op.reason in EVIDENCE_REASONS
 
-    def test_the_vocabulary_has_no_duplicates(self):
+    def test_the_reasons_have_no_duplicates(self):
         assert len(set(EVIDENCE_REASONS)) == len(EVIDENCE_REASONS)
 
 
@@ -85,7 +83,7 @@ class TestTheSupportSeat:
     """Sitting down in the seat the schema reserved."""
 
     def test_the_kind_is_carried_not_inferred(self):
-        """Both endpoints are strings; only the kind says which board to look on.
+        """Both endpoints are strings; only the kind says which beliefs to look on.
 
         A flat ``tuple[str, ...]`` -- the type the seat was originally declared
         with -- would have made a reader guess, and look up a memory id on the

@@ -38,7 +38,7 @@ from doxa.governance import (
         # Everything it rested on was refuted or retracted.
         ([DEAD], OUT),
         ([DEAD, DEAD], OUT),
-        # Nothing alive, but what is missing left the board rather than failed.
+        # Nothing alive, but what is missing left the beliefs rather than failed.
         ([ABSENT], INDETERMINATE),
         ([DEAD, ABSENT], INDETERMINATE),
         ([ABSENT, ABSENT], INDETERMINATE),

@@ -43,8 +43,6 @@ the promise is about adding rather than about a fixed list of seats.
 Pure and dependency-free: stdlib only.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Literal
 
@@ -79,6 +77,7 @@ TargetKind = Literal["atom", "rule", "link"]
 #: duplication is forced. A reason runs the other way: the ledger is what the word
 #: is for, and a host may import this package freely. So extend the set at its
 #: source rather than copying the strings into the writers.
+
 #: A belief's footing went away and the loss was booked against it.
 REASON_SUPPORT_LOST = "support_lost"
 #: A write restated a belief already held, corroborating it instead of

@@ -1,19 +1,18 @@
-"""Controlled vocabulary for belief/memory provenance (Stage 1).
+"""The fixed set of names for where a belief came from.
 
-Before this increment ``BeliefNode.source`` mixed two unrelated concerns in one
-field: the *origin kind* of a belief (who asserted it) and the *retrieval
-mechanism* that re-materialized it from LTM (``"LTM_ReadThrough"``,
-``"LTM_SpreadingActivation"``). This module fixes the vocabulary for the
-former and the pure mapping functions used to derive it at write time; the
-retrieval mechanism now lives in the separate ``retrieved_via`` field (see
-``runtime/blackboard.py``) so it can never again overwrite the origin.
+Two questions look alike and are not: *who asserted this* and *what brought it
+back into view*. A single ``source`` field ends up answering both -- a belief
+restored from long-term storage overwrites its own origin with the mechanism that
+restored it, and the record of who said it in the first place is gone. So the two
+have separate vocabularies here, and the mechanism belongs in a field of its own.
+
+Fixing the names is the whole of this module. Deciding which one applies is the
+host's business; deciding what the words may be is the ledger's.
 """
 
-from __future__ import annotations
-
-# The four write systems (Perception, Actuator, Consolidation, Memory seeding)
-# each stamp one of these at birth. "unknown" is the fallback for legacy rows
-# and any caller that does not specify an origin.
+#: Where a belief originated. One of these is stamped at birth by whatever wrote
+#: it, and ``unknown`` is the fallback for a row that predates the distinction or
+#: a caller that does not specify.
 SOURCE_KINDS = frozenset(
     {
         "user",
@@ -26,20 +25,18 @@ SOURCE_KINDS = frozenset(
     },
 )
 
-# Retrieval mechanisms that re-materialize an existing belief without
-# changing who originally asserted it. Distinct from SOURCE_KINDS: these
-# describe *how* a node reappeared, not *who* it came from. "conflict_check"
-# is the reversal-conflict restore that pages a user belief back in to compare
-# against a contradicting assertion.
+#: How an existing belief was brought back into view, which never changes who
+#: originally asserted it. ``conflict_check`` is the restore that pages a belief
+#: back in to compare it against something that contradicts it.
 RETRIEVAL_KINDS = frozenset({"read_through", "spreading_activation", "conflict_check"})
 
-# Belief-node property keys that are fixed at birth and never overwritten by
-# a later update (see Blackboard._add_atom). Read-through/spreading-activation
-# restore these from the LTM row rather than replacing them.
+#: The properties fixed at birth that a later update must not overwrite. A
+#: restore re-attaches these from the stored row rather than replacing them --
+#: which is the mechanical form of the distinction this module exists to keep.
 PROVENANCE_KEYS = frozenset({"source", "session_id", "origin_event_id"})
 
-# Fallback mapping from an AddAtomMessage/Coalition "role" to a controlled
-# source kind, used whenever a caller does not pass an explicit "source".
+#: Fallback mapping from the role a write carried to a source kind, used whenever
+#: a caller does not pass an explicit source.
 _ROLE_TO_SOURCE_KIND: dict[str, str] = {
     "user": "user",
     "conjecture": "user",
@@ -50,38 +47,34 @@ _ROLE_TO_SOURCE_KIND: dict[str, str] = {
 
 
 def source_kind_for_role(role: str) -> str:
-    """Map a belief-write role to its controlled-vocabulary source kind.
+    """Map the role a belief was written under to a source kind.
 
-    Used as the birth-time fallback when a write does not carry an explicit
-    ``source`` property (see Blackboard._add_atom): the user-message and
-    ask-user grounding paths write with ``role="user"``/``"conjecture"``,
-    corpus writes with ``role="corpus"``, tool observations with
-    ``role="observation"``, and derived/LTM-restored writes with
-    ``role="agent"``.
+    Used as the birth-time fallback when a write carries no explicit ``source``:
+    something a person said or conjectured is ``user``, something read from a
+    corpus is ``corpus``, an observation from a tool is ``tool``, and anything the
+    agent derived or restored for itself is ``derivation``.
 
     Args:
-        role: The role carried on the write (AddAtomMessage.role).
+        role: The role carried on the write.
 
     Returns:
-        A value from :data:`SOURCE_KINDS`; ``"unknown"`` for any role not in
-        the fallback mapping.
+        A value from :data:`SOURCE_KINDS`; ``"unknown"`` for any role not in the
+        fallback mapping.
     """
     return _ROLE_TO_SOURCE_KIND.get(role, "unknown")
 
 
 def episode_source_kind(kind: str, source: str) -> str:
-    """Map a conscious broadcast's coalition kind/source to an episode's source kind.
+    """Map an episode's kind and source onto the source kind it should record.
 
-    For a ``"belief"`` coalition, ``source`` carries the originating write's
-    role (see ``GlobalWorkspace.on_atom_added``), so the same role mapping
-    applies. Every other coalition kind (surprise, contradiction,
-    revision_conflict, error, semantic) is an agent-internal derived signal
-    rather than something a role authored, so it is tagged ``"derivation"``.
+    When the episode is about a belief, ``source`` carries the role the belief was
+    written under, so the same role mapping applies. Every other kind of episode --
+    a surprise, a contradiction, an error -- is something the agent worked out
+    internally rather than something a role authored, so it is ``derivation``.
 
     Args:
-        kind: The winning coalition's kind (``event.kind`` on
-            ``CoalitionBroadcastEvent``).
-        source: The winning coalition's source (``event.source``).
+        kind: What the episode was about.
+        source: Where it came from, for a belief episode.
 
     Returns:
         A value from :data:`SOURCE_KINDS`.

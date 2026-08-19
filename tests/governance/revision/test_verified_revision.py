@@ -31,11 +31,11 @@ def _core_for(beliefs: dict[str, dict[str, Any]], rule_exprs: list[Expr]) -> tup
     return unsat_core, expr_to_node_id
 
 
-def _core_with_vocab(
+def _core_with_links(
     beliefs: dict[str, dict[str, Any]],
     constraints: PredicateConstraints,
 ) -> tuple[list[Expr], dict[str, str]]:
-    """Core of a contradiction the vocabulary links raise, as Reasoning produces it."""
+    """Core of a contradiction the links raise, as a host produces it."""
     return _core_for(beliefs, predicate_clauses(beliefs, constraints))
 
 
@@ -150,7 +150,7 @@ class TestEqualConfidenceTie:
         assert select_verified_revision_target(core, beliefs, mapping, rules) is None
 
     def test_single_settling_candidate_in_the_band_still_wins(self) -> None:
-        """Equal standing is not enough -- the board can separate what the preference cannot.
+        """Equal standing is not enough -- the beliefs can separate what the preference cannot.
 
         ``q(c)`` is re-derived by the asserted ``a(c)``, so flipping it whiffs
          and only ``p(c)`` settles the clash. The rule is "two settling
@@ -218,7 +218,7 @@ class TestEqualConfidenceTie:
 
 
 class TestHypothesisIsReadFromBeliefContext:
-    """The hypothesis preference reads the key the blackboard actually writes.
+    """The hypothesis preference reads the key the host's belief store actually writes.
 
     ``add_atom`` takes a ``role`` argument and stores it under ``belief_context``;
     ``BeliefNode`` has no ``role`` field. Reading ``role`` therefore never matched
@@ -256,15 +256,15 @@ class TestHypothesisIsReadFromBeliefContext:
         assert target[0] == "q(x)"
 
 
-class TestVocabularyDerivedClauses:
-    """The re-check sees the vocabulary constraints too."""
+class TestLinkDerivedClauses:
+    """The re-check sees the link constraints too."""
 
     def test_rejects_a_flip_that_only_moves_the_clash(self) -> None:
-        # cat -> animal (implication link) and animal excludes mineral. The board
+        # cat -> animal (implication link) and animal excludes mineral. The beliefs
         # violates the implication: cat(x) is held, animal(x) is denied. Flipping
         # animal(x) to true satisfies the implication but makes it clash with the
         # pinned mineral(x) -- the beat would whiff. Only a re-check that re-
-        # synthesizes the clauses from the *flipped* board can see that.
+        # synthesizes the clauses from the *flipped* beliefs can see that.
         constraints = PredicateConstraints(
             exclusion_targets={"animal": {"mineral"}},
             implication_targets={"cat": {"animal"}},
@@ -274,14 +274,14 @@ class TestVocabularyDerivedClauses:
             "animal(x)": {"belief_context": "observation", "confidence": 0.9, "truth_value": False},
             "mineral(x)": {"belief_context": "user", "confidence": 1.0, "truth_value": True},
         }
-        core, mapping = _core_with_vocab(beliefs, constraints)
+        core, mapping = _core_with_links(beliefs, constraints)
 
         # Without the link clauses the flip looks like a fix.
         assert select_verified_revision_target(core, beliefs, mapping, [])[0] == "animal(x)"
 
         # With them, no fact flip resolves, so the fact path declines (the rule path
         # or a later beat handles it) instead of whiffing.
-        assert select_verified_revision_target(core, beliefs, mapping, [], vocab=constraints) is None
+        assert select_verified_revision_target(core, beliefs, mapping, [], links=constraints) is None
 
     def test_pileup_falls_back_to_a_flip_that_makes_progress(self) -> None:
         # Three residences under a single-valued predicate: three pairwise clashes,
@@ -294,8 +294,8 @@ class TestVocabularyDerivedClauses:
             "lives_in(alice, osaka)": {"belief_context": "observation", "confidence": 0.5, "truth_value": True},
             "lives_in(alice, kyoto)": {"belief_context": "observation", "confidence": 0.8, "truth_value": True},
         }
-        core, mapping = _core_with_vocab(beliefs, constraints)
-        target = select_verified_revision_target(core, beliefs, mapping, [], vocab=constraints)
+        core, mapping = _core_with_links(beliefs, constraints)
+        target = select_verified_revision_target(core, beliefs, mapping, [], links=constraints)
         assert target is not None
         assert target[0] == "lives_in(alice, osaka)"
 
@@ -303,7 +303,7 @@ class TestVocabularyDerivedClauses:
         remaining = {**beliefs, target[0]: {**target[1], "truth_value": False}}
         assert len(predicate_clauses(remaining, constraints)) == 1
 
-    def test_inviolable_vocabulary_clash_returns_none(self) -> None:
+    def test_inviolable_link_clash_returns_none(self) -> None:
         # Two pinned user residences: the progress fallback does not make an
         # inviolable belief revisable, it only relaxes what counts as verified.
         constraints = PredicateConstraints(functional_predicates=("lives_in",))
@@ -311,8 +311,8 @@ class TestVocabularyDerivedClauses:
             "lives_in(alice, tokyo)": {"belief_context": "user", "confidence": 1.0, "truth_value": True},
             "lives_in(alice, osaka)": {"belief_context": "user", "confidence": 1.0, "truth_value": True},
         }
-        core, mapping = _core_with_vocab(beliefs, constraints)
-        assert select_verified_revision_target(core, beliefs, mapping, [], vocab=constraints) is None
+        core, mapping = _core_with_links(beliefs, constraints)
+        assert select_verified_revision_target(core, beliefs, mapping, [], links=constraints) is None
 
     def test_empty_constraints_match_the_previous_behavior(self) -> None:
         rules = [_rule("fof(excl, axiom, ![X] : ~(human(X) & robot(X))).")]
@@ -322,7 +322,7 @@ class TestVocabularyDerivedClauses:
         }
         core, mapping = _core_for(beliefs, rules)
         without = select_verified_revision_target(core, beliefs, mapping, rules)
-        with_empty = select_verified_revision_target(core, beliefs, mapping, rules, vocab=PredicateConstraints())
+        with_empty = select_verified_revision_target(core, beliefs, mapping, rules, links=PredicateConstraints())
         assert without == with_empty
         assert with_empty is not None
         assert with_empty[0] == "robot(x)"

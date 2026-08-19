@@ -13,16 +13,15 @@ operations, so the decision surface returns :class:`~doxa.governance.ledger.Ledg
 rather than a bespoke verdict type.
 
 **This is wiring, not new judgement.** Every decision below is made by the same
-pure functions ``modules.reasoning._resolve_contradiction`` calls, in the same
-order, with the same conditions. What changes is *where the order lives*: it was
-written out by hand in each caller (the ladder's stage-4 host said so in its own
-docstring), and a wiring written twice is a wiring that gets fixed once
-. A host-side test pins this order against production.
+pure functions a host would otherwise have to call itself, in the same order and
+under the same conditions. What changes is *where the order lives*: written out by
+hand in each caller, it is a wiring that gets fixed once and stays broken
+everywhere else.
 
 **Scope: the belief tier.** Beliefs, learned rules and the ties between them --
 the ledger's primary object. Production additionally
-arbitrates *acquired vocabulary links* (``find_link_culprits``), which
-belong to asset ① and whose ledger §2 decision 3 deliberately keeps separate. So
+arbitrates *acquired links* (``find_link_culprits``), which
+the ledger deliberately keeps separate. So
 this surface does not reduce production to a single call, and it is not meant to:
 whether the two ledgers are ever shown as one view is a later judgement.
 
@@ -34,8 +33,6 @@ foreign host can satisfy with a string.
 Depends only on the bundled solver (:mod:`doxa.solver`) and on this package's own
 revision logic (:mod:`doxa.governance.revision`).
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -58,7 +55,7 @@ if TYPE_CHECKING:
     from doxa.solver import Expr
 
 #: ``actor`` stamped on the operations governance itself decides. A host that
-#: applies one writes it under whatever role its own board uses (production's TMS
+#: applies one writes it under whatever role its own beliefs uses (production's TMS
 #: writes ``agent``); what the ledger records here is that the decision came from
 #: the governance layer rather than from a speaker.
 GOVERNANCE_ACTOR = "governance"
@@ -139,8 +136,8 @@ class GovernanceOutcome:
         ops: The operations governance performs, in the order it performs them.
             Empty when consistent, and also when a conflict is real but nothing is
             revisable -- the correct detect-but-hold-silently outcome.
-        hold: The pair a ``hold`` names, carrying what an answer would ground
-            . ``None`` unless the operations contain a ``hold``.
+        hold: The pair a ``hold`` names, carrying what an answer would ground.
+            ``None`` unless the operations contain a ``hold``.
         undecided: A conflict was found and no operation was decided at all --
             neither a retraction nor a hold. Distinct from a hold: this is the
             pile-up that no single question can settle (arity gate), and
@@ -188,22 +185,22 @@ def govern(
     Returns:
         The operations to perform. A consistent belief set yields none.
     """
-    board = _board(beliefs)
+    held = _belief_map(beliefs)
     theory = _theory(constraints)
 
-    superseded = _supersede(board, escalated, constraints.functional_predicates)
+    superseded = _supersede(held, escalated, constraints.functional_predicates)
     if superseded is not None:
         return GovernanceOutcome(consistent=False, ops=(superseded,))
 
-    verdict, unsat_core, expr_to_node_id = check_consistency(board, theory.active, max_rounds=max_rounds)
+    verdict, unsat_core, expr_to_node_id = check_consistency(held, theory.active, max_rounds=max_rounds)
     if verdict != "UNSAT":
         return GovernanceOutcome(consistent=True)
 
-    return _resolve(board, theory, unsat_core, expr_to_node_id, max_rounds=max_rounds)
+    return _resolve(held, theory, unsat_core, expr_to_node_id, max_rounds=max_rounds)
 
 
 def _resolve(
-    board: dict[str, dict[str, Any]],
+    beliefs: dict[str, dict[str, Any]],
     theory: _Theory,
     unsat_core: list[Expr],
     expr_to_node_id: dict[str, str],
@@ -222,12 +219,12 @@ def _resolve(
     """
     fact_target = select_verified_revision_target(
         unsat_core,
-        board,
+        beliefs,
         expr_to_node_id,
         theory.active,
         max_rounds=max_rounds,
     )
-    rule_culprits = _rule_culprits(board, theory)
+    rule_culprits = _rule_culprits(beliefs, theory)
 
     fact_confidence = fact_target[1].get("confidence", 1.0) if fact_target is not None else None
     decision = choose_revision_candidate(fact_confidence, [rule.confidence for rule in rule_culprits])
@@ -235,7 +232,7 @@ def _resolve(
     if decision is None:
         tie = select_tie_question_target(
             unsat_core,
-            board,
+            beliefs,
             expr_to_node_id,
             theory.active,
             max_rounds=max_rounds,
@@ -281,7 +278,7 @@ def _resolve(
     return GovernanceOutcome(consistent=False, ops=tuple(ops))
 
 
-def _rule_culprits(board: dict[str, dict[str, Any]], theory: _Theory) -> list[Rule]:
+def _rule_culprits(beliefs: dict[str, dict[str, Any]], theory: _Theory) -> list[Rule]:
     """Find the defeasible rules whose removal alone would restore consistency.
 
     ``find_rule_culprits`` answers in exprs, so the rules are recovered by object
@@ -291,7 +288,7 @@ def _rule_culprits(board: dict[str, dict[str, Any]], theory: _Theory) -> list[Ru
     if not theory.defeasible:
         return []
     culprit_ids = {
-        id(expr) for expr in find_rule_culprits(board, theory.active, [expr for _rule, expr in theory.defeasible])
+        id(expr) for expr in find_rule_culprits(beliefs, theory.active, [expr for _rule, expr in theory.defeasible])
     }
     return [rule for rule, expr in theory.defeasible if id(expr) in culprit_ids]
 
@@ -312,7 +309,7 @@ def _corroborate_survivors(
 
 
 def _supersede(
-    board: dict[str, dict[str, Any]],
+    beliefs: dict[str, dict[str, Any]],
     escalated: str | None,
     functional_predicates: Collection[str],
 ) -> LedgerOp | None:
@@ -325,7 +322,7 @@ def _supersede(
     """
     if escalated is None or not functional_predicates:
         return None
-    partner = functional_exclusion_partner(escalated, board, functional_predicates)
+    partner = functional_exclusion_partner(escalated, beliefs, functional_predicates)
     if partner is None:
         return None
     node_id, data = partner
@@ -338,10 +335,10 @@ def _supersede(
     )
 
 
-def _board(beliefs: Sequence[Belief]) -> dict[str, dict[str, Any]]:
+def _belief_map(beliefs: Sequence[Belief]) -> dict[str, dict[str, Any]]:
     """Build the node-id -> data mapping the governance logic reads.
 
-    The role goes under ``belief_context`` because that is the key the blackboard
+    The role goes under ``belief_context`` because that is the key the host's belief store
     writes and the revision preference reads; ``role`` would
     silently disable the hypothesis preference.
     """

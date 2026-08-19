@@ -31,8 +31,6 @@ evidence.
 Pure and dependency-free: stdlib only.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -52,13 +50,13 @@ UNRESOLVED = "UNRESOLVED"
 
 BeliefStatus = Literal["HELD", "UNRESOLVED"]
 
-#: Mirrors ``kernel/governance/tms/preference.py``: a belief with no explicit confidence is
+#: Mirrors :mod:`doxa.governance.revision.preference`: a belief with no explicit confidence is
 #: inviolable, revision failing safe toward not touching an unmarked belief.
 _DEFAULT_CONFIDENCE = 1.0
 
-#: Mirrors ``kernel/governance/tms/preference.py``'s band tolerance. The two derivations of
+#: Mirrors :mod:`doxa.governance.revision.preference`'s band tolerance. The two derivations of
 #: "does the preference separate these?" are kept independent on purpose -- the
-#: asset may not import the host's TMS -- and a test pins them against each other,
+#: package may not import a host's own revision code -- and a test pins them against each other,
 #: so the day one is changed alone, it shows up as a failure rather than as a
 #: silent divergence between what the system does and what its ledger says.
 _CONFIDENCE_EPSILON = 1e-9
@@ -85,7 +83,7 @@ class BeliefState:
             for how the preference reads that).
         status: ``HELD`` or ``UNRESOLVED``.
         context: The role the target was born under (``belief_context`` on the
-            board), which is what the revision preference reads to tell a
+            beliefs), which is what the revision preference reads to tell a
             conjecture from an assertion.
         held_with: The other side of the tie, while unresolved.
         released_by: The ``origin_event_id`` of the operation that ended the last
@@ -121,7 +119,7 @@ class ViewEquivalence:
     hide the interesting one.
 
     ``UNRESOLVED`` has no counterpart here, and that is not an omission: **the
-    board cannot represent a hold**. Two beliefs the preference could not
+    beliefs cannot represent a hold**. Two beliefs the preference could not
     separate sit on it as two ordinary beliefs, which is the gap the derived view
     closes. There is nothing on the other side for the ledger's status to be
     checked against, so it is pinned by a positive control rather than by this
@@ -140,23 +138,23 @@ class ViewEquivalence:
             put a target here, and they are not
             the same:
 
-            - **A regression in the recording path.** A booking the board folded
+            - **A regression in the recording path.** A booking the beliefs folded
               and did not record, or recorded and did not fold. Either way the
               write side and the ledger have come apart again.
             - **A restore that brought no tally back.** The ledger keeps a
-              belief's whole series, so a belief that returned to the board
+              belief's whole series, so a belief that returned to the beliefs
               without its counts reads as saying less than the audit log can
               account for. Paging carries the tally now, which is what
               made this column an invariant rather than a residual; what remains
-              are the restores whose source has no tally to give -- a broadcast
+              are the restores whose source has no tally to give -- an entry
               persists a proposition, not its evidence. Paging itself
               is still not a ledger operation: the fix was to
-              stop the board forgetting, not to teach the ledger to forget.
+              stop the beliefs forgetting, not to teach the ledger to forget.
 
             Note the test is a disagreement, not an inequality: the ledger
-            holding *more* than the board lands here too, which is what makes
+            holding *more* than the beliefs lands here too, which is what makes
             the second case visible at all.
-        missing_from_board: Targets the ledger knows that the board no longer
+        missing_from_state: Targets the ledger knows that the beliefs no longer
             has -- paged out to LTM or evicted. Excluded from the
             comparison rather than counted as breakage, and reported so the
             exclusion is never invisible.
@@ -168,7 +166,7 @@ class ViewEquivalence:
     truth_breaks: int = 0
     confidence_breaks: int = 0
     unattributed: int = 0
-    missing_from_board: int = 0
+    missing_from_state: int = 0
     details: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -237,7 +235,7 @@ def _apply(
     if op.op == "retract" and op.target_kind == "atom" and op.confidence is None:
         # The flip re-attributes the belief's own evidence to the claim it now
         # makes (``swap_evidence``). The two conditions mirror the
-        # board's own: it swaps only for an atom, and only when the write stated
+        # beliefs's own: it swaps only for an atom, and only when the write stated
         # no confidence -- a writer that states one is declaring a credence for
         # the new claim, and a tally kept for the old one must not overrule it.
         # A retracted *rule* has no tally at all: its retraction is the stated
@@ -249,18 +247,18 @@ def _apply(
 
 
 def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool) -> bool:
-    """Whether a ``ground`` also reversed a belief the board already held.
+    """Whether a ``ground`` also reversed a belief the beliefs already held.
 
     An ask-user answer wins the operation whatever else the write does
     (:mod:`~doxa.governance.derive`), which is right --
     conferring confidence 1.0 is the thing that only this operation does. But the
-    write can *also* be a reversal, and then the board re-attributes the belief's
+    write can *also* be a reversal, and then the beliefs re-attributes the belief's
     evidence exactly as it does for a revision flip: its test is "the truth value
     changed and no confidence was stated", and it does not ask which operation
     the ledger will call it.
 
-    So this restates the board's own test rather than keying off the operation
-    name. All three conditions are the board's: an existing belief
+    So this restates the beliefs's own test rather than keying off the operation
+    name. All three conditions are the beliefs's: an existing belief
     (``truth_flipped`` is only set for a node already there), a changed truth
     value, and no stated confidence.
 
@@ -302,7 +300,7 @@ def _release_holds(view: dict[str, BeliefState], op: LedgerOp) -> None:
 def _band_key(state: BeliefState) -> tuple[bool, float]:
     """Where the revision preference ranks this belief.
 
-    The host's derivation of the same judgement is ``kernel/governance/tms/preference.py``
+    The host's derivation of the same judgement is :mod:`doxa.governance.revision.preference`
     ``band_key``; see ``_CONFIDENCE_EPSILON`` on why there are two.
     """
     confidence = _DEFAULT_CONFIDENCE if state.confidence is None else state.confidence
@@ -390,13 +388,13 @@ def _swap_evidence(state: BeliefState, *, prior_strength: float, ceiling: float)
 
 def compare_to_state(
     view: Mapping[str, BeliefState],
-    board: Mapping[str, Mapping[str, Any]],
+    beliefs: Mapping[str, Mapping[str, Any]],
 ) -> ViewEquivalence:
-    """Check a reconstructed view against the live blackboard (criterion 3).
+    """Check a reconstructed view against the host's live state (criterion 3).
 
     Args:
         view: The output of :func:`reconstruct_view`.
-        board: The blackboard's atom nodes, keyed by node id, each a mapping of
+        beliefs: The host's belief store's atom nodes, keyed by node id, each a mapping of
             the node attributes (``truth_value``/``confidence``/``evidence_*``).
 
     Returns:
@@ -409,44 +407,44 @@ def compare_to_state(
     for target, state in view.items():
         if state.target_kind != "atom":
             continue
-        node = board.get(target)
+        node = beliefs.get(target)
         if node is None:
             missing += 1
             continue
         compared += 1
-        board_truth = bool(node.get("truth_value", True))
-        if board_truth != state.truth_value:
+        held_truth = bool(node.get("truth_value", True))
+        if held_truth != state.truth_value:
             truth_breaks += 1
-            details.append(f"truth {target}: ledger={state.truth_value} board={board_truth}")
-        if _board_evidence(node) != (state.evidence_for, state.evidence_against):
+            details.append(f"truth {target}: ledger={state.truth_value} beliefs={held_truth}")
+        if _held_evidence(node) != (state.evidence_for, state.evidence_against):
             unattributed += 1
             continue
-        board_confidence = node.get("confidence")
-        if not _confidence_agrees(state.confidence, board_confidence):
+        held_confidence = node.get("confidence")
+        if not _confidence_agrees(state.confidence, held_confidence):
             confidence_breaks += 1
-            details.append(f"confidence {target}: ledger={state.confidence} board={board_confidence}")
+            details.append(f"confidence {target}: ledger={state.confidence} beliefs={held_confidence}")
     return ViewEquivalence(
         compared=compared,
         truth_breaks=truth_breaks,
         confidence_breaks=confidence_breaks,
         unattributed=unattributed,
-        missing_from_board=missing,
+        missing_from_state=missing,
         details=tuple(details),
     )
 
 
-def _board_evidence(node: Mapping[str, Any]) -> tuple[int, int]:
-    """Read the board's for/against tally for one node."""
+def _held_evidence(node: Mapping[str, Any]) -> tuple[int, int]:
+    """Read the beliefs's for/against tally for one node."""
     return (int(node.get("evidence_for", 0) or 0), int(node.get("evidence_against", 0) or 0))
 
 
-def _confidence_agrees(ledger: float | None, board: object) -> bool:
-    """Whether the ledger's credence matches the board's, both absences included."""
-    if ledger is None or board is None:
-        return ledger is None and board is None
-    if not isinstance(board, (int, float)) or isinstance(board, bool):
+def _confidence_agrees(ledger: float | None, beliefs: object) -> bool:
+    """Whether the ledger's credence matches the beliefs's, both absences included."""
+    if ledger is None or beliefs is None:
+        return ledger is None and beliefs is None
+    if not isinstance(beliefs, (int, float)) or isinstance(beliefs, bool):
         return False
-    return abs(float(board) - ledger) <= _CONFIDENCE_EPSILON
+    return abs(float(beliefs) - ledger) <= _CONFIDENCE_EPSILON
 
 
 __all__ = [

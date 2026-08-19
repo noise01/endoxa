@@ -10,10 +10,8 @@ The credence replay is tested for the properties it has to preserve, not for
 particular decimals: an inviolable belief is untouched by evidence, and a flip
 hands the tally to the claim the belief now makes. The numbers
 themselves are pinned against the host's own implementation in
-``tests/doppelganger/test_governance_ledger_contract.py``.
+the ledger contract tests.
 """
-
-from __future__ import annotations
 
 import pytest
 

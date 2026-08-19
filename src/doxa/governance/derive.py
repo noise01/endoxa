@@ -26,18 +26,16 @@ remains free to configure one that keeps less. So the horizon keeps meaning
 exactly what it always meant -- the earliest row this derivation could read,
 which is not a claim of completeness.
 
-**Reading the host's event names.** An asset may not import
-``doppelganger.events`` (the import-linter boundary; the asset has to travel to
+**Reading the host's event names.** This package may not import
+a host's own event definitions (this package has to travel to
 another host without the control plane), so the event type names live here as
 string constants. A host-side test pins them against the real classes'
 ``__name__`` so a rename cannot silently empty the ledger.
 
 Pure and basis-independent (stdlib only): the input is the raw row shape the
-event store returns, exactly as :func:`~doppelganger.kernel.trace.render_diary`
+event store returns, exactly as :func:`~doxa.trace.render_diary`
 takes raw trace rows.
 """
-
-from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
@@ -63,7 +61,7 @@ MEMORY_BATCH_UPDATE_REQUEST = "MemoryBatchUpdateRequestEvent"
 #: read so a diagnostic run does not drag the whole audit log into memory.
 #:
 #: ``BeliefSupportRecordedEvent`` is the odd one: it yields **no operation at
-#: all**. A derivation reaching a belief already on the board changes
+#: all**. A derivation reaching a belief already on the beliefs changes
 #: no claim and no credence, so it is read for the support state it
 #: carries and for nothing else -- the first row type here that is state without
 #: being an operation.
@@ -71,7 +69,7 @@ MEMORY_BATCH_UPDATE_REQUEST = "MemoryBatchUpdateRequestEvent"
 #: ``BeliefEvidenceBookedEvent`` is the write side breaking its own silence
 #: (increment 1). It maps onto exactly the same operations as
 #: ``BeliefEvidenceRecordedEvent``; the two are separate classes only because
-#: the board subscribes to the latter, so re-using it would fold the evidence a
+#: the beliefs subscribes to the latter, so re-using it would fold the evidence a
 #: second time. The distinction is a host wiring detail, and the derivation is
 #: deliberately blind to it.
 LEDGER_EVENT_TYPES: frozenset[str] = frozenset(
@@ -86,9 +84,9 @@ LEDGER_EVENT_TYPES: frozenset[str] = frozenset(
     },
 )
 
-#: Property name the board writes its support record under, and the keys of one
-#: record (``domains.blackboard.support``). String constants for the
-#: same reason the event names are: the asset cannot import the host.
+#: Property name the beliefs writes its support record under, and the keys of one
+#: record (a host's own support record). String constants for the
+#: same reason the event names are: this package cannot import a host.
 SUPPORTED_BY_KEY = "supported_by"
 _SUPPORT_KIND_KEY = "kind"
 _SUPPORT_REF_KEY = "ref"
@@ -104,7 +102,7 @@ _AXIOM_MEMORY_TYPE = "axiom"
 
 #: Default for the confidence below which a defeasible rule stops constraining
 #: (``settings.reasoning_rule_active_confidence_threshold``). Passed in by the
-#: host rather than imported, so the asset carries no configuration dependency.
+#: host rather than imported, so this package carries no configuration dependency.
 DEFAULT_RULE_ACTIVE_THRESHOLD = 0.5
 
 
@@ -214,7 +212,7 @@ class _FoldState:
     ``truth`` is the running truth value per belief: the host's ``AtomAddedEvent``
     carries the properties that were *written*, not the resulting node, so whether
     a write flipped a belief is only visible against what the series says it held
-    (``domains/blackboard/graph_ops.py`` ``add_atom``).
+    (a host's own atom writer).
 
     ``supports`` is the same idea for the support seat: a belief's
     footing accumulates across rows (a materialisation writes one, a later
@@ -257,10 +255,10 @@ def _operations(
 
 
 def _support_refs(records: object) -> tuple[SupportRef, ...]:
-    """Read a board support record into typed references, skipping malformed entries.
+    """Read a beliefs support record into typed references, skipping malformed entries.
 
-    Tolerant in the same measure as the board's own reader
-    (``domains.blackboard.support``): support is read on paths that also run for
+    Tolerant in the same measure as the beliefs's own reader
+    (a host's own support record): support is read on paths that also run for
     beliefs that never had any, and an audit log is not a place where raising is
     useful. An unknown ``kind`` is dropped rather than guessed -- the whole point
     of carrying the kind is that it is not inferred.
@@ -281,7 +279,7 @@ def _support_refs(records: object) -> tuple[SupportRef, ...]:
 def _absorb_support(record: _Record, state: _FoldState) -> None:
     """Fold a ``BeliefSupportRecordedEvent`` into the running support state.
 
-    Appended, not replaced, and never duplicated -- mirroring the board's
+    Appended, not replaced, and never duplicated -- mirroring the beliefs's
     ``add_support``: a derivation that runs again over the same pair is
     the same footing, not a second one.
     """
@@ -303,7 +301,7 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
       write does.
     - an unseen belief -> ``assert``. Birth defaults to true, matching ``add_atom``.
     - a flip -> ``retract`` or ``supersede``. **The discriminator is the one the
-      board itself uses**: ``runtime/blackboard.py`` re-attributes the belief's
+      beliefs itself uses**: a host's belief store re-attributes the belief's
       evidence to its new claim (``swap_evidence``) exactly when the
       write carries no explicit ``confidence``. A revision flip writes the truth
       value alone; recency supersession restates the confidence to say "the world
@@ -314,7 +312,7 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
       all for an idempotent re-assertion, so a row here always changed something).
 
     A written support record **replaces** what the belief is known to rest on,
-    because that is what the board does: ``add_atom`` overwrites the property, so
+    because that is what the beliefs does: ``add_atom`` overwrites the property, so
     a re-derivation names the antecedent it actually rode on this time.
     Accumulation is the other writer's job (``_absorb_support``).
     """
@@ -363,7 +361,7 @@ def _evidence_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     """Map an evidence row onto ``confirm`` or ``refute``.
 
     Both evidence event types land here (see :data:`LEDGER_EVENT_TYPES`): which
-    class the host used says only whether the board had already folded the
+    class the host used says only whether the beliefs had already folded the
     evidence before publishing, which is not a governance distinction.
 
     No confidence is carried: the event says only which way the evidence points,
@@ -373,7 +371,7 @@ def _evidence_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     is booked against a derived belief exactly when its footing goes,
     and stamping the entry with what it was resting on at that moment is what lets
     a reader tell "refuted while still supported" from "refuted because the
-    support died" -- from the series alone, with no board in hand. The reason
+    support died" -- from the series alone, with no beliefs in hand. The reason
      says the same thing from the other side: the support set is
     the *state* the booking found, the reason is the *event* that caused it, and
     a reader who has to infer one from the other is guessing again.
@@ -400,7 +398,7 @@ def _reason(value: object) -> EvidenceReason | None:
     Dropped rather than guessed, exactly as :func:`_support_refs` drops an
     unknown support ``kind``: the whole value of carrying the word is that it was
     not inferred, so an audit log written by an older host (or by a writer this
-    vocabulary has not caught up with) reads as "no reason stated" instead of as
+    set of names has not caught up with) reads as "no reason stated" instead of as
     a reason invented here.
     """
     if isinstance(value, str) and value in EVIDENCE_REASONS:

@@ -9,7 +9,7 @@ would be arbitrariness, not calibration.
 
 Holding both is right; staying silent about it is not. Before this module the
 tie surfaced only as a warning log in
-:meth:`~doppelganger.faculties.reasoning.ReasoningModule._resolve_contradiction`.
+a warning log on the host's side.
 This module decides when a tie is well-formed enough to ask the user about, and
 what each answer would have to ground for the answer to actually settle it.
 
@@ -23,8 +23,6 @@ means every clash between two things the user said.
 Pure and basis-independent (governance tier): stdlib + sibling
 domain modules only.
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -121,7 +119,7 @@ def select_tie_question_target(  # noqa: PLR0913
     rule_exprs: list[Expr],
     *,
     max_rounds: int | None = None,
-    vocab: PredicateConstraints | None = None,
+    links: PredicateConstraints | None = None,
 ) -> ContradictionTie | None:
     """Decide whether a contradiction is a tie worth asking the user about (§5).
 
@@ -148,7 +146,7 @@ def select_tie_question_target(  # noqa: PLR0913
     The sub-theory both completions are checked against is built exactly as
     :func:`~doxa.governance.revision.engine.select_verified_revision_target`
     builds it: every belief sharing an individual with a core atom, plus the core
-    atoms themselves. Vocabulary clauses are re-synthesised per trial so the
+    atoms themselves. Link clauses are re-synthesised per trial so the
     check sees the same constraints the detection did.
 
     Condition 3 restates, from the answer's side, what the revision selector
@@ -165,7 +163,7 @@ def select_tie_question_target(  # noqa: PLR0913
         rule_exprs: The active rule expressions (hard constraints for the re-check).
         max_rounds: Optional E-matching round cap; an ``"UNKNOWN"`` re-check is
             treated conservatively as not settling the tie, so no question is asked.
-        vocab: The vocabulary link sources whose ground clauses constrain the re-check.
+        links: The link sources whose ground clauses constrain the re-check.
 
     Returns:
         The :class:`ContradictionTie` to ask about, or None when the conflict is
@@ -196,7 +194,7 @@ def select_tie_question_target(  # noqa: PLR0913
 
     for targets in ((True, b_on_affirm), (False, not b_on_affirm)):
         completion = _completion(cluster, (node_a, node_b), targets)
-        clauses = predicate_clauses(completion, vocab)
+        clauses = predicate_clauses(completion, links)
         result, _, _ = check_consistency(completion, [*rule_exprs, *clauses], max_rounds=max_rounds)
         if result != "SAT":
             return None

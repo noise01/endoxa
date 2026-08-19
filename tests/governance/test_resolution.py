@@ -6,11 +6,9 @@ declares -- a retraction names what to withdraw, a hold names both sides -- and 
 preference is applied on the way there.
 
 The wiring's agreement with production is pinned separately, against a live OS
-(``tests/doppelganger/test_governance_ledger_equivalence.py``): here the concern is the surface
-itself, and these run with no board, no DB and no LLM.
+(the equivalence tests): here the concern is the surface
+itself, and these run with no beliefs, no DB and no LLM.
 """
-
-from __future__ import annotations
 
 from doxa.governance import Belief, Constraints, Rule, govern
 
@@ -23,14 +21,14 @@ def _belief(target: str, *, truth: bool = True, confidence: float = 0.9, context
 
 
 class TestConsistentBoards:
-    def test_a_consistent_board_yields_no_operations(self):
+    def test_a_consistent_belief_set_yields_no_operations(self):
         outcome = govern([_belief("alive(felix)")], Constraints(hard_axioms=(_EXCLUSION,)))
         assert outcome.consistent is True
         assert outcome.ops == ()
         assert outcome.hold is None
         assert outcome.retraction is None
 
-    def test_an_empty_board_is_consistent(self):
+    def test_an_empty_belief_set_is_consistent(self):
         assert govern([], Constraints()).consistent is True
 
 
@@ -47,7 +45,7 @@ class TestRetractingABelief:
         assert retraction.target == "dead(felix)"
         assert retraction.target_kind == "atom"
         # The operation states the claim the belief now makes, so applying it needs no
-        # second look at the board.
+        # second look at the beliefs.
         assert retraction.truth_value is False
 
     def test_the_survivors_of_the_conflict_are_confirmed(self):

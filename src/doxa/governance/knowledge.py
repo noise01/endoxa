@@ -11,8 +11,6 @@ What this module provides is the three names an outside reader needs in order to
 read a knowledge boundary at all.
 """
 
-from __future__ import annotations
-
 from typing import Literal
 
 #: Where a belief sits relative to the agent's knowledge boundary: held with

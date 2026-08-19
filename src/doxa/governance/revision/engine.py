@@ -113,7 +113,7 @@ def entails(
     same assumption set). This is what cautious verification is for: checking
     whether a precondition is genuinely entailed by the *rest*
     of the beliefs and the axiom network, rather than trusted at face value
-    because it happens to sit on the blackboard.
+    because it happens to sit on the host's belief store.
 
     Args:
         beliefs: Mapping of belief node ID to its data (``truth_value`` etc.).
@@ -154,7 +154,7 @@ def find_rule_culprits(
     beliefs: dict[str, dict[str, Any]],
     active_rule_exprs: list[Expr],
     defeasible_rule_exprs: list[Expr],
-    vocab: PredicateConstraints | None = None,
+    links: PredicateConstraints | None = None,
 ) -> list[Expr]:
     """Find defeasible rules whose removal alone restores consistency.
 
@@ -164,8 +164,8 @@ def find_rule_culprits(
     inability to surface quantified rules in the unsat core, since E-matched
     ground instances are asserted as hard clauses.
 
-    The vocabulary-derived ground clauses stay asserted throughout.
-    Without them a purely vocabulary-derived contradiction -- an exclusion or
+    The link-derived ground clauses stay asserted throughout.
+    Without them a purely link-derived contradiction -- an exclusion or
     implication clash no rule participates in -- leaves the reduced theory SAT for
     *every* defeasible rule, so all of them are reported as culprits and
     :func:`choose_revision_candidate` may retract an innocent low-confidence rule
@@ -176,17 +176,17 @@ def find_rule_culprits(
         beliefs: Mapping of belief node ID to its data.
         active_rule_exprs: All currently active rule expressions (base + learned).
         defeasible_rule_exprs: The subset of active rules eligible for retraction.
-        vocab: The vocabulary link sources whose ground clauses constrain the
+        links: The link sources whose ground clauses constrain the
             re-check. ``None`` (the default) re-checks without them.
 
     Returns:
         The defeasible rule expressions whose removal restores SAT.
     """
-    vocab_exprs = predicate_clauses(beliefs, vocab)
+    link_exprs = predicate_clauses(beliefs, links)
     culprits: list[Expr] = []
     for rule in defeasible_rule_exprs:
         reduced = [r for r in active_rule_exprs if r is not rule]
-        result, _, _ = check_consistency(beliefs, [*reduced, *vocab_exprs])
+        result, _, _ = check_consistency(beliefs, [*reduced, *link_exprs])
         if result == "SAT":
             culprits.append(rule)
     return culprits
@@ -253,9 +253,9 @@ def find_supporting_rules(
 def find_link_culprits(
     beliefs: dict[str, dict[str, Any]],
     active_rule_exprs: list[Expr],
-    vocab: PredicateConstraints | None = None,
+    links: PredicateConstraints | None = None,
 ) -> list[PredicateLink]:
-    """Find acquired vocabulary links whose retraction alone restores consistency.
+    """Find acquired links whose retraction alone restores consistency.
 
     The link-level twin of :func:`find_rule_culprits`. For each link in the
     constraint set, the clauses are **re-synthesised** with just that link dropped
@@ -265,7 +265,7 @@ def find_link_culprits(
     assumption the rule search uses.
 
     This is what lets a wrong link die. Without it, every contradiction a mistaken
-    ritual link creates is resolved by retracting a *belief* -- the acquisition
+    acquired link creates is resolved by retracting a *belief* -- whatever proposed it
     error is transcribed into the belief set instead of being blamed on its source
     .
 
@@ -278,18 +278,18 @@ def find_link_culprits(
         beliefs: Mapping of belief node ID to its data.
         active_rule_exprs: All currently active rule expressions (base + learned),
             asserted throughout so a rule-driven contradiction is not blamed on a link.
-        vocab: The vocabulary link sources. ``None`` (the default) yields no
+        links: The link sources. ``None`` (the default) yields no
             candidates, which is the production baseline before any link is populated.
 
     Returns:
         The links whose removal restores SAT, in the deterministic order of
         :meth:`PredicateConstraints.acquired_links`.
     """
-    if vocab is None or vocab.is_empty():
+    if links is None or links.is_empty():
         return []
     culprits: list[PredicateLink] = []
-    for link in vocab.acquired_links():
-        reduced_clauses = predicate_clauses(beliefs, vocab.without(link))
+    for link in links.acquired_links():
+        reduced_clauses = predicate_clauses(beliefs, links.without(link))
         result, _, _ = check_consistency(beliefs, [*active_rule_exprs, *reduced_clauses])
         if result == "SAT":
             culprits.append(link)
@@ -360,7 +360,7 @@ def select_verified_revision_target(  # noqa: PLR0913
     rule_exprs: list[Expr],
     *,
     max_rounds: int | None = None,
-    vocab: PredicateConstraints | None = None,
+    links: PredicateConstraints | None = None,
 ) -> tuple[str, dict[str, Any]] | None:
     """Select a conflicting belief whose truth-flip actually restores consistency.
 
@@ -384,7 +384,7 @@ def select_verified_revision_target(  # noqa: PLR0913
     beats). Equality-coupled individuals (EUF) pull each other into the
     cluster through the equality atoms the solver placed in the core.
 
-    The re-check also asserts the vocabulary-derived ground clauses, *re-synthesized
+    The re-check also asserts the link-derived ground clauses, *re-synthesized
     from each trial belief set* rather than reused from the detection pass:
     a flip can satisfy the clause that fired while creating a new clash, and only
     re-synthesis sees that. Because every synthesized clause is one the belief set
@@ -398,13 +398,13 @@ def select_verified_revision_target(  # noqa: PLR0913
     nothing left to say about which should go, and the function returns None rather
     than take whichever the UNSAT core happened to name first. Being unsettleable is
     a failure of the preference, not of the solver, so the tie question path
-    (``kernel.governance.tms.tie``) picks it up from there. A band where nothing settles falls
+    (:mod:`doxa.governance.revision.tie`) picks it up from there. A band where nothing settles falls
     through to the next one, so a whiffed low-confidence band still yields to a
     higher-confidence fix.
 
     When no band settles anything -- a functional-exclusion pile-up of three or more
     values leaves a clash behind whichever single atom is flipped -- the first
-    candidate (in the same preference order) that *strictly reduces* the vocabulary
+    candidate (in the same preference order) that *strictly reduces* the link
     clash count is taken instead. Tie detection is deliberately **not** applied to
     this fallback: returning None here would not raise a question either (a pile-up
     fails the tie path's pair gate) and would only cost the "each contradiction is
@@ -420,12 +420,12 @@ def select_verified_revision_target(  # noqa: PLR0913
         rule_exprs: The active rule expressions (hard constraints for the re-check).
         max_rounds: Optional E-matching round cap; an ``"UNKNOWN"`` re-check is
             treated conservatively as not resolving the conflict.
-        vocab: The vocabulary link sources whose ground clauses constrain the
+        links: The link sources whose ground clauses constrain the
             re-check. ``None`` (the default) re-checks without them.
 
     Returns:
         The (node_id, data) of a fact whose flip restores consistency of its
-        sub-theory (or, failing that, strictly reduces the vocabulary clash), chosen
+        sub-theory (or, failing that, strictly reduces the link clash), chosen
         by TMS preference, or None when no single fact flip does, or when several
         equally-preferred ones do and the preference cannot choose between them.
     """
@@ -449,7 +449,7 @@ def select_verified_revision_target(  # noqa: PLR0913
 
     # Clash count of the unflipped cluster: the fallback below requires a candidate to
     # strictly beat it.
-    baseline_clashes = len(predicate_clauses(cluster, vocab))
+    baseline_clashes = len(predicate_clauses(cluster, links))
     progress_target: tuple[str, dict[str, Any]] | None = None
 
     for band in preference_bands(candidates):
@@ -457,7 +457,7 @@ def select_verified_revision_target(  # noqa: PLR0913
         for node_id, data in band:
             flipped = {**data, "truth_value": not data.get("truth_value", True)}
             trial = {**cluster, node_id: flipped}
-            trial_clauses = predicate_clauses(trial, vocab)
+            trial_clauses = predicate_clauses(trial, links)
             result, _, _ = check_consistency(trial, [*rule_exprs, *trial_clauses], max_rounds=max_rounds)
             if result == "SAT":
                 settling.append((node_id, data))
@@ -493,7 +493,7 @@ def choose_revision_candidate(
     """Pick the lowest-confidence contradiction-revision target (§2.10).
 
     Considers a fact-level target (a revisable belief atom), link-level targets
-    (acquired vocabulary links whose retraction restores consistency)
+    (acquired links whose retraction restores consistency)
     and rule-level targets (defeasible learned rules). The
     lowest-confidence candidate wins.
 
@@ -501,7 +501,7 @@ def choose_revision_candidate(
     link binds two predicates over every individual, so it is more general than a
     single belief; a learned rule can state an arbitrary formula, so it is more
     general than a link. The ordering is about blast radius, not about trust --
-    a link's provenance (one LLM response in the acquisition ritual) is if
+    a link's provenance (a single upstream judgement) is if
     anything weaker than a rule whose confidence grew through use.
 
     Args:

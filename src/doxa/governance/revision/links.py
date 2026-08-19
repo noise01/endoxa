@@ -37,8 +37,6 @@ uses, so a synthesised clause's atom expressions are identical to the assumption
 expressions and the solver correlates them.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field, replace
 from itertools import combinations
 from typing import TYPE_CHECKING, Any, Literal
@@ -66,8 +64,8 @@ class PredicateLink:
     The identity a culprit search returns and a retraction event carries:
     ``kind`` picks which constraint source it lives in, ``predicate`` owns it and
     ``target`` is what it excludes or implies. Plain strings rather than the
-    asset's link types -- ``kernel/governance/tms`` reasons over the constraints, not over
-    the vocabulary asset's models.
+    package's link types -- :mod:`doxa.governance.revision` reasons over the constraints, not over
+    the link models.
     """
 
     kind: Literal["exclusion", "implication"]
@@ -77,11 +75,11 @@ class PredicateLink:
 
 @dataclass(frozen=True, slots=True)
 class PredicateConstraints:
-    """The three link sources the vocabulary asset records, bundled for clause synthesis.
+    """The three link sources, bundled for clause synthesis.
 
     Groups the inputs of :func:`functional_exclusion_clauses`,
     :func:`inter_predicate_exclusion_clauses` and :func:`implication_clauses`
-    so a caller can carry "the constraints the vocabulary imposes" as one value and hand
+    so a caller can carry "the constraints the links impose" as one value and hand
     it to both the detection path (the consistency check) and the *revision* path
     (whiff re-verification and rule-culprit search). Detection and resolution must see
     the same constraints (extended to revision selection by);
@@ -100,10 +98,10 @@ class PredicateConstraints:
         return not self.functional_predicates and not self.exclusion_targets and not self.implication_targets
 
     def acquired_links(self) -> list[PredicateLink]:
-        """Enumerate the links the acquisition ritual populated, as retraction candidates.
+        """Enumerate the links the constraint set holds, as retraction candidates.
 
         ``functional_predicates`` is deliberately excluded: it is a
-        config bootstrap standing in for a per-symbol link the ritual has not yet
+        config bootstrap standing in for a per-symbol link a host has not yet
         elicited, not acquired data, and functional-exclusion clashes
         are resolved by recency supersession before culprit search is reached.
 
@@ -144,7 +142,7 @@ def predicate_clauses(
     beliefs: dict[str, dict[str, Any]],
     constraints: PredicateConstraints | None,
 ) -> list[Expr]:
-    """Synthesize every vocabulary-derived ground clause the belief set currently violates.
+    """Synthesize every link-derived ground clause the belief set currently violates.
 
     Runs the three synthesizers in this module over one belief set. Every clause they
     emit is by construction a *currently violated* constraint -- exclusion clauses are
@@ -155,7 +153,7 @@ def predicate_clauses(
 
     Args:
         beliefs: Mapping of belief node ID to its data (``truth_value`` etc.).
-        constraints: The vocabulary link sources, or ``None`` for "no constraints".
+        constraints: The link sources, or ``None`` for "no constraints".
 
     Returns:
         The ground clause expressions to add as hard constraints (empty when
@@ -241,7 +239,7 @@ def inter_predicate_exclusion_clauses(
     ``exclusion_targets`` maps a predicate to the predicate names it excludes. The
     relation is treated as *undirected* here: atoms ``p(args)`` and ``q(args)``
     clash when ``q`` is in ``exclusion_targets[p]`` **or** ``p`` is in
-    ``exclusion_targets[q]``. The acquisition ritual records an exclusion link on
+    ``exclusion_targets[q]``. A host records an exclusion link on
     the proposing symbol only (:func:`.memory._build_exclusion_links` adds no
     reciprocal edge), and unit-propagation detection reads only the *newer* atom's
     links, so it misses a clash asserted in the other order. Treating
@@ -304,15 +302,15 @@ def implication_clauses(
     is symmetric, but ``cat(x) -> animal(x)`` does not license ``animal(x) -> cat(x)``,
     and symmetrizing would inject the false constraint that every animal is a cat.
 
-    A consequent *absent* from the board yields no clause. This keeps the clause set
+    A consequent *absent* from the beliefs yields no clause. This keeps the clause set
     identical to unit propagation's escalation condition (a consequent held false,
     :func:`.propagation.propagate`) per the detection/resolution agreement discipline
     . Emitting the implication for an absent consequent would let the
     solver *derive* ``q(args)`` -- forward materialization of a new atom, which is a
-    separate question about derived-atom provenance on the blackboard,
+    separate question about derived-atom provenance on the host's belief store,
     not contradiction resolution.
 
-    Scanning board pairs additionally closes the assertion-order blind spot of
+    Scanning beliefs pairs additionally closes the assertion-order blind spot of
     in-beat detection (propagation reads only the newly asserted atom's links, so a
     consequent asserted false *after* its antecedent is missed) -- the same deeper-tier
     strengthening :func:`inter_predicate_exclusion_clauses` gets from undirectedness.
@@ -457,8 +455,8 @@ def functional_exclusion_partner(
     """Find the atom that ``node_id`` functionally excludes and that is still held true.
 
     Used by the resolution path: when a functional-exclusion clash
-    is escalated, ``node_id`` is the newly asserted atom (the coalition
-    ``content_id``), so its true, same-leading-args, different-final-value partner
+    is escalated, ``node_id`` is the newly asserted atom, so its true,
+    same-leading-args, different-final-value partner
     is the *older* belief the recency-supersession rule retracts. Functional
     exclusion signals a state change ("moved"), not a miscalibration, so the newer
     claim wins and the older is superseded regardless of confidence (unlike the

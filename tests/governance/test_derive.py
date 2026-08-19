@@ -1,6 +1,6 @@
 """Tests for deriving the ledger from persisted event rows.
 
-The derivation is a pure asset function, so these run without a store, a DB or an
+The derivation is a pure function, so these run without a store, a DB or an
 LLM. Beyond the mapping itself, three things are guarded:
 
 - **The positive control** (criterion 4): ``hold``, ``supersede`` and
@@ -8,14 +8,12 @@ LLM. Beyond the mapping itself, three things are guarded:
   is not a result, and these three are exactly the
   operations a run may go without ever performing.
 - **The retract/supersede discriminator**: the two differ only in whether the
-  write stated a confidence, which is the board's own test for whether a flip is
-  counter-evidence (``runtime/blackboard.py``). Both shapes are fixed here.
+  write stated a confidence, which is the beliefs's own test for whether a flip is
+  counter-evidence (a host's belief store). Both shapes are fixed here.
 - **Both row shapes** produce the same series, as the diary tests do for trace
   rows: the LanceDB adapter's JSON string and ``datetime``, and a plain dict with
   an epoch float.
 """
-
-from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
@@ -28,7 +26,7 @@ _T0 = 1_700_000_000.0
 
 
 def _derivation(antecedent_id: str) -> list[dict[str, str]]:
-    """Build the board's support record for a forward-derived consequent."""
+    """Build the beliefs's support record for a forward-derived consequent."""
     return [{"kind": "derivation", "ref": antecedent_id}]
 
 
@@ -63,7 +61,7 @@ class TestAtomOperations:
         assert op.actor == "user"
 
     def test_a_flip_without_a_stated_confidence_is_a_retract(self):
-        # TMS revision writes the truth value alone and lets the board
+        # TMS revision writes the truth value alone and lets the beliefs
         # re-attribute the evidence; that silence is the retraction.
         rows = [
             _row("AtomAddedEvent", _atom("flammable(bridge)", {"truth_value": True, "confidence": 0.95})),
@@ -124,10 +122,10 @@ class TestEvidenceOperations:
         rows = [_row("BeliefEvidenceRecordedEvent", {"node_id": "mortal(socrates)", "supports": False})]
         assert _ops(rows) == [("refute", "mortal(socrates)")]
 
-    def test_a_booking_the_board_made_itself_is_the_same_operation(self):
+    def test_a_booking_the_host_made_itself_is_the_same_operation(self):
         """The two evidence event types are one row type here.
 
-        Which class the host published says whether the board had already folded
+        Which class the host published says whether the beliefs had already folded
         before recording -- a wiring detail of the host's own re-entrancy, not a
         governance distinction. A derivation that treated them differently would
         be reading the host's plumbing into the ledger.
@@ -150,7 +148,7 @@ class TestEvidenceOperations:
     def test_an_unrecognised_reason_is_dropped_not_carried(self):
         """Dropped rather than guessed, as an unknown support ``kind`` is.
 
-        A log written by a host older than this vocabulary, or by a writer it has
+        A log written by a host older than this set of names, or by a writer it has
         not caught up with, has to read as "no reason stated". Passing the word
         through would be worse than dropping it: a reader could not tell a reason
         the host meant from one that merely survived.
