@@ -1,0 +1,53 @@
+?start: fof_annotated
+
+fof_annotated: "fof" "(" NAME "," ROLE "," fof_formula ")" "."
+
+?fof_formula: fof_or_formula "=>" fof_formula -> implies_expr
+    | fof_or_formula
+
+?fof_or_formula: fof_or_formula "|" fof_and_formula -> or_expr
+    | fof_and_formula
+
+?fof_and_formula: fof_and_formula "&" fof_unary_formula -> and_expr
+    | fof_unary_formula
+
+?fof_unary_formula: "~" fof_unary_formula -> not_expr
+    | fof_quantified_formula
+    | fof_atomic_formula
+    | "(" fof_formula ")"
+
+?fof_quantified_formula: "!" "[" var_list "]" ":" fof_unary_formula -> forall_expr
+    | "?" "[" var_list "]" ":" fof_unary_formula -> exists_expr
+
+?fof_atomic_formula: fof_term "=" fof_term -> eq_expr
+    | fof_term "!=" fof_term -> neq_expr
+    | plain_term -> pred_expr
+
+?fof_term: plain_term -> term_expr
+    | VAR -> var_expr
+
+plain_term: FUNCTOR "(" term_list ")" -> app_term
+    | FUNCTOR -> const_term
+
+var_list: VAR ("," VAR)*
+
+term_list: fof_term ("," fof_term)*
+
+ROLE: LOWER_WORD
+
+NAME: LOWER_WORD
+    | NUMBER
+
+FUNCTOR: LOWER_WORD
+
+VAR: UPPER_WORD
+
+LOWER_WORD: /[a-z][a-zA-Z0-9_]*/
+
+UPPER_WORD: /[A-Z][a-zA-Z0-9_]*/
+
+NUMBER: /[0-9]+/
+
+%import common.WS
+
+%ignore WS

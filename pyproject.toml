@@ -83,11 +83,15 @@ ignore = [
     "INP001",
     "PLR2004",
     "S101",
+    "S311", # seeded pseudo-random generation is the point of the harness, not crypto
     "SLF001",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The differential harness is a helper package under tests/, imported by the two
+# tests that drive it; the repo root has to be importable for that to resolve.
+pythonpath = ["."]
 # strict-markers/strict-config: a mistyped marker or ini key must fail rather
 # than be silently ignored -- a check that cannot fail is not a check.
 addopts = ["--strict-markers", "--strict-config"]
