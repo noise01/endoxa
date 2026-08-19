@@ -10,9 +10,8 @@ LLM. Beyond the mapping itself, three things are guarded:
 - **The retract/supersede discriminator**: the two differ only in whether the
   write stated a confidence, which is the beliefs's own test for whether a flip is
   counter-evidence (a host's belief store). Both shapes are fixed here.
-- **Both row shapes** produce the same series, as the diary tests do for trace
-  rows: the LanceDB adapter's JSON string and ``datetime``, and a plain dict with
-  an epoch float.
+- **Both row shapes** produce the same series: a JSON string payload with a
+  ``datetime``, and a plain dict payload with an epoch float.
 """
 
 import json
@@ -35,7 +34,7 @@ def _row(event_type: str, payload: dict[str, Any], *, at: float = _T0, event_id:
 
 
 def _adapter_row(event_type: str, payload: dict[str, Any], *, at: float = _T0, event_id: str = "e1") -> dict[str, Any]:
-    """Return the LanceDB adapter's shape: payload as a JSON string, timestamp as datetime."""
+    """Return a store shape that serialises: payload as JSON, timestamp as datetime."""
     row = _row(event_type, payload, at=at, event_id=event_id)
     row["payload"] = json.dumps(row["payload"])
     row["timestamp"] = datetime.fromtimestamp(at, tz=UTC)

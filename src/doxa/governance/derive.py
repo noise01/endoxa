@@ -32,9 +32,8 @@ another host without the control plane), so the event type names live here as
 string constants. A host-side test pins them against the real classes'
 ``__name__`` so a rename cannot silently empty the ledger.
 
-Pure and basis-independent (stdlib only): the input is the raw row shape the
-event store returns, exactly as :func:`~doxa.trace.render_diary`
-takes raw trace rows.
+Pure and dependency-free: the input is the raw row shape a host's event store
+returns.
 """
 
 import json
@@ -174,8 +173,8 @@ class _Record:
 def _parse(row: Mapping[str, Any]) -> _Record | None:
     """Normalize a raw store row, or return ``None`` when its payload is unreadable.
 
-    Both row shapes are accepted, as in the diary: the LanceDB adapter's JSON
-    string payload and ``datetime`` timestamp, and a plain dict payload with an
+    Two row shapes are accepted, because a store may hand back either: a JSON
+    string payload with a ``datetime`` timestamp, or a plain dict payload with an
     epoch float.
     """
     payload = row.get("payload")
@@ -477,7 +476,7 @@ def _rule_update_operations(record: _Record, *, rule_active_threshold: float) ->
     """Map an axiom confidence update onto ``retract`` (or a restating ``assert``).
 
     Soft retraction of a learned rule is a confidence driven below the active
-    threshold (``modules/reasoning.py`` ``_retract_rule``): the row is kept so the
+    threshold: the row is kept so the
     rule can be re-learned, which is precisely the ledger's own stance -- the
     entry does not disappear, it stops counting. An update that leaves the rule
     active is a restatement, not a withdrawal.

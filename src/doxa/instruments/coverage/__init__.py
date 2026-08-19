@@ -1,10 +1,9 @@
-"""How densely the rules connect the predicates.
+from doxa.instruments.coverage.graph import build_predicate_graph, rule_antecedent_links
+from doxa.instruments.coverage.snapshot import CoverageSnapshot, compute_coverage_snapshot
 
-A set of predicates nothing relates is a glossary; a set of predicates whose
-rules reach one another is a theory. This measures the difference, by reading
-the rules as a graph over the predicates they mention.
-
-Requires the ``coverage`` extra.
-"""
-
-__all__: list[str] = []
+__all__ = [
+    "CoverageSnapshot",
+    "build_predicate_graph",
+    "compute_coverage_snapshot",
+    "rule_antecedent_links",
+]
