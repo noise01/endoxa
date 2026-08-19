@@ -16,8 +16,6 @@ import z3, hypothesis, or the host. hypothesis strategies that wrap it live in t
 evals test modules, keeping the generator reusable by the tests/ CI smoke.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 

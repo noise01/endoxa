@@ -7,8 +7,6 @@ why this exists alongside the fixed seeded batch next door rather than replacing
 A shrunk formula is a bug report; a random one is a puzzle.
 """
 
-from __future__ import annotations
-
 import random
 
 import hypothesis.strategies as st

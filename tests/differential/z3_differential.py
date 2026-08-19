@@ -14,8 +14,6 @@ This module discharges ADR-0050's commitment that the frozen solver's reliabilit
 is guarded by a Z3 differential oracle.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
