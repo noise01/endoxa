@@ -4,6 +4,18 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## Unreleased
+
+- **The calibration accumulators are tested directly.** They were reachable only
+  through the windowed recomputation that folds them, which cannot construct an
+  accumulator that has seen nothing and cannot state any of their contracts on
+  its own terms. Added: each type asserted directly, the empty states (no
+  observations is not a score of zero), the two ask-policy rates that differ
+  only in their denominator, the transitions that count as neither direction,
+  and the property that folding one observation at a time agrees with computing
+  over the whole stream at once. The export list of
+  `endoxa.instruments.calibration` is checked against the package both ways.
+
 ## 0.0.1
 
 First release.
