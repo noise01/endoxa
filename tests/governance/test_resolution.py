@@ -10,7 +10,7 @@ The wiring's agreement with production is pinned separately, against a live OS
 itself, and these run with no beliefs, no DB and no LLM.
 """
 
-from doxa.governance import Belief, Constraints, Rule, govern
+from endoxa.governance import Belief, Constraints, Rule, govern
 
 _EXCLUSION = "fof(excl, axiom, ![X] : ~(alive(X) & dead(X)))."
 _IMPLICATION = "fof(impl, axiom, ![X] : (cat(X) => animal(X)))."

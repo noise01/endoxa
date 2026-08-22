@@ -30,9 +30,9 @@ def test_doxa_solver_agrees_with_z3_on_seeded_batch() -> None:
     disagreements = []
     for _ in range(_SMOKE_COUNT):
         result = differential_check(generate_formula(rng))
-        verdicts.add(result.doxa)
+        verdicts.add(result.endoxa)
         if not result.agree:
-            disagreements.append(f"doxa={result.doxa} z3={result.z3} on {result.formula_repr}")
+            disagreements.append(f"endoxa={result.endoxa} z3={result.z3} on {result.formula_repr}")
 
     assert not disagreements, "solver differential disagreement(s):\n" + "\n".join(disagreements)
     # Sanity: the seeded batch must exercise both verdicts, else the guard is vacuous.

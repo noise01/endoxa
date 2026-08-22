@@ -1,6 +1,6 @@
 """Unit tests for the ground-atom grammar."""
 
-from doxa.syntax import parse_atom
+from endoxa.syntax import parse_atom
 
 
 class TestParseAtom:

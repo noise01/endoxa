@@ -9,12 +9,12 @@ These tests drive the real solver.
 
 from typing import Any
 
-from doxa.governance.revision import (
+from endoxa.governance.revision import (
     PredicateConstraints,
     PredicateLink,
     find_link_culprits,
 )
-from doxa.solver import Expr, parse_fof
+from endoxa.solver import Expr, parse_fof
 
 
 def _rule(tptp: str) -> Expr:

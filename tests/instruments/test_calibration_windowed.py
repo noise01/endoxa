@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from doxa.instruments.calibration import (
+from endoxa.instruments.calibration import (
     AskObservation,
     CompetenceObservation,
     KnowledgeObservation,

@@ -7,8 +7,8 @@ excluded from its own proof, and the inconclusive verdicts (budget
 cut / unparseable target).
 """
 
-from doxa.governance.revision import entails, find_supporting_rules
-from doxa.solver import parse_fof
+from endoxa.governance.revision import entails, find_supporting_rules
+from endoxa.solver import parse_fof
 
 # human(X) => mortal(X): the canonical entailment rule.
 _MORTAL_RULE = parse_fof("fof(rule_mortal, axiom, ![X] : (human(X) => mortal(X))).")[2]

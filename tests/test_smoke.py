@@ -2,22 +2,22 @@
 
 import importlib
 
-import doxa
+import endoxa
 
 PACKAGES = [
-    "doxa.governance",
-    "doxa.governance.revision",
-    "doxa.instruments",
-    "doxa.instruments.calibration",
-    "doxa.instruments.coverage",
-    "doxa.solver",
-    "doxa.syntax",
-    "doxa.trace",
+    "endoxa.governance",
+    "endoxa.governance.revision",
+    "endoxa.instruments",
+    "endoxa.instruments.calibration",
+    "endoxa.instruments.coverage",
+    "endoxa.solver",
+    "endoxa.syntax",
+    "endoxa.trace",
 ]
 
 
 def test_package_imports():
-    assert doxa.__doc__
+    assert endoxa.__doc__
 
 
 def test_every_declared_package_imports():

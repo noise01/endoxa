@@ -15,7 +15,7 @@ the ledger contract tests.
 
 import pytest
 
-from doxa.governance import HELD, UNRESOLVED, LedgerOp, reconstruct_view
+from endoxa.governance import HELD, UNRESOLVED, LedgerOp, reconstruct_view
 
 
 def _op(kind: str, target: str, **fields: object) -> LedgerOp:

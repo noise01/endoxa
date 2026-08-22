@@ -13,7 +13,7 @@ that once rested on it, which is the false refutation this keeps at zero.
 
 import pytest
 
-from doxa.governance import (
+from endoxa.governance import (
     ABSENT,
     ALIVE,
     DEAD,

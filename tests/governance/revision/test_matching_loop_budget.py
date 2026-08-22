@@ -12,8 +12,8 @@ search may examine. Its tests assert on the engine's own counters rather than on
 wall-clock time, so they stay deterministic and need no ``benchmark`` marker.
 """
 
-from doxa.governance.revision import check_consistency
-from doxa.solver import Bool, Implies, Not, Solver, parse_fof
+from endoxa.governance.revision import check_consistency
+from endoxa.solver import Bool, Implies, Not, Solver, parse_fof
 
 # A classic matching loop: p(X) => p(f(X)) with the seed p(a) instantiates
 # p(f(a)), p(f(f(a))), ... without end. Unbounded, check() would not terminate.

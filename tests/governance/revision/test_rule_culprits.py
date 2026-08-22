@@ -10,11 +10,11 @@ tests drive the real solver.
 
 from typing import Any
 
-from doxa.governance.revision import (
+from endoxa.governance.revision import (
     PredicateConstraints,
     find_rule_culprits,
 )
-from doxa.solver import Expr, parse_fof
+from endoxa.solver import Expr, parse_fof
 
 _FUNCTIONAL = PredicateConstraints(functional_predicates=("lives_in",))
 
