@@ -58,6 +58,11 @@ dev = [
 [tool.ruff]
 target-version = "py314"
 line-length = 120
+# The generated wiki is not maintained code. ruff formats python blocks inside
+# markdown, and those pages carry examples written to be read rather than to
+# satisfy a formatter; reformatting a generator's output is a fight with the
+# generator, which writes it again on the next run.
+extend-exclude = ["openwiki"]
 
 [tool.ruff.format]
 line-ending = "lf"
