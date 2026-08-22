@@ -91,6 +91,16 @@ pip install "endoxa[coverage]"  # how densely rules connect predicates
   and checked in CI.
 - **Requires Python 3.14+.**
 
+## Issues
+
+Issues are open and they are read. What is not offered is a response time: this
+is one person's pre-alpha library, so a report may sit for a while and a pull
+request may sit longer. Filing one is still the best way to move something up
+the list — what is reported is what gets looked at first.
+
+Security reports go through [private advisories](https://github.com/noise01/endoxa/security/advisories/new)
+rather than public issues. See [SECURITY.md](SECURITY.md).
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
