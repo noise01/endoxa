@@ -1,0 +1,64 @@
+name: Release
+
+# A release is a tag, not a state of `main`: the version that goes out is a commit
+# someone deliberately marked. The tag and the built version are checked against
+# each other below, because PyPI refuses a second upload of a version it already
+# has -- a mismatch caught after the fact cannot be corrected, only abandoned.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Named here and in the trusted publisher on PyPI. Both sides state it so that
+    # neither a workflow moved into this repository nor a tag pushed to a fork can
+    # reach the upload token.
+    environment: pypi
+
+    permissions:
+      # Trusted publishing exchanges this short-lived token for an upload token at
+      # PyPI. Nothing about the account is stored in this repository.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync
+        run: uv sync --all-extras --dev
+
+      # The same four checks CI runs, repeated rather than assumed. A tag can point
+      # at a commit CI never saw -- a rebase, a branch that was never pushed -- and
+      # this is the one place where "it was green somewhere" does not undo itself.
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format
+        run: uv run ruff format --check .
+
+      - name: Import contracts
+        run: uv run lint-imports
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Build
+        run: uv build
+
+      - name: The tag and the built version agree
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          built="$(basename dist/*.tar.gz .tar.gz)"
+          built="${built#endoxa-}"
+          if [ "$tagged" != "$built" ]; then
+            echo "tag says ${tagged}, the package says ${built}" >&2
+            exit 1
+          fi
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

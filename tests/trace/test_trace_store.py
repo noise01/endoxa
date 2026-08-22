@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from doxa.trace import Proposition, TraceStore
+from endoxa.trace import Proposition, TraceStore
 
 
 class InMemoryTraceStore:

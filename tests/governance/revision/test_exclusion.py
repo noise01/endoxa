@@ -15,7 +15,7 @@ synthesized clause's UNSAT is genuine, not asserted.
 
 from typing import Any
 
-from doxa.governance.revision import (
+from endoxa.governance.revision import (
     PredicateConstraints,
     backward_implication_clauses,
     check_consistency,

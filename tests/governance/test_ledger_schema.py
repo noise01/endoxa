@@ -11,7 +11,7 @@ import dataclasses
 
 import pytest
 
-from doxa.governance import EVIDENCE_REASONS, LEDGER_OPS, LedgerOp, SupportRef
+from endoxa.governance import EVIDENCE_REASONS, LEDGER_OPS, LedgerOp, SupportRef
 
 
 class TestOperationSet:

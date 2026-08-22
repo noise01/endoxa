@@ -1,6 +1,6 @@
 """An unsat core must name the assumptions that caused the conflict, and only those."""
 
-from doxa.solver import Bool, Eq, Implies, Int, Not, Solver
+from endoxa.solver import Bool, Eq, Implies, Int, Not, Solver
 
 
 def test_solver_assumptions_basic():

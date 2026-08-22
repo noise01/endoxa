@@ -1,9 +1,9 @@
-from doxa.instruments.coverage import (
+from endoxa.instruments.coverage import (
     build_predicate_graph,
     compute_coverage_snapshot,
     rule_antecedent_links,
 )
-from doxa.solver import parse_fof
+from endoxa.solver import parse_fof
 
 # --- Unit: predicate adjacency graph (coverage/graph.py) ---------------
 

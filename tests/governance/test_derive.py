@@ -18,8 +18,8 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from doxa.governance import SupportRef, derive_ledger
-from doxa.governance.derive import AXIOM_LOAD_CORRELATION_ID
+from endoxa.governance import SupportRef, derive_ledger
+from endoxa.governance.derive import AXIOM_LOAD_CORRELATION_ID
 
 _T0 = 1_700_000_000.0
 

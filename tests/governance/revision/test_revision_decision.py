@@ -1,6 +1,6 @@
 from typing import Any
 
-from doxa.governance.revision import (
+from endoxa.governance.revision import (
     RevisionDecision,
     choose_revision_candidate,
     parse_fact_to_expr,

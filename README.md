@@ -1,12 +1,12 @@
-# doxa
+# endoxa
 
 **Governed beliefs for agents.** An append-only ledger, SMT-checked consistency,
 defeasible revision, and calibration instruments — a layer you give an agent,
 not a framework you build one inside.
 
-> **Status: pre-alpha.** The library is being extracted from the research system
-> it grew in, where it has run for months. Nothing is published yet and the API
-> shown below is the shape it lands in, not a promise.
+> **Status: pre-alpha.** The library was extracted whole from the research system
+> it grew in, where it has run for months. Versions before 1.0 may move the public
+> API: what is shown below is where the extraction landed, not a promise.
 
 ## The problem
 
@@ -16,7 +16,7 @@ context, no way to check a new claim against the ones it already made, and no
 record of why it believes any of them. Asking it to be consistent is asking the
 thing that lost track to keep track.
 
-doxa is the place to put them.
+endoxa is the place to put them.
 
 ## What it does
 
@@ -37,10 +37,16 @@ doxa is the place to put them.
 ## Example
 
 ```python
-from doxa.governance import Belief, Constraints, Rule, govern
+from endoxa.governance import Belief, Constraints, Rule, govern
 
 constraints = Constraints(
-    rules=[Rule(name="mortality", axiom="fof(m, axiom, ![X]: (human(X) => mortal(X)))")],
+    rules=(
+        Rule(
+            name="mortality",
+            axiom="fof(m, axiom, ![X]: (human(X) => mortal(X))).",
+            confidence=0.9,
+        ),
+    ),
 )
 beliefs = [
     Belief(target="human(socrates)", truth_value=True, confidence=1.0, context="user"),
@@ -52,7 +58,7 @@ outcome = govern(beliefs, constraints)
 outcome.consistent  # False
 
 # The operations to perform, in order: here, retracting the 0.6-confidence
-# claim rather than the one the user asserted.
+# claim -- not the rule, and not the one the user asserted.
 outcome.ops
 ```
 
@@ -62,19 +68,19 @@ append to the ledger and apply to your own store.
 ## Install
 
 ```bash
-pip install doxa
+pip install endoxa
 ```
 
 The core takes one dependency. Two packages need more and are opt-in:
 
 ```bash
-pip install "doxa[trace]"     # the ordered series of an agent's propositions
-pip install "doxa[coverage]"  # how densely rules connect predicates
+pip install "endoxa[trace]"     # the ordered series of an agent's propositions
+pip install "endoxa[coverage]"  # how densely rules connect predicates
 ```
 
 ## Design notes
 
-- **The solver is bundled and frozen.** doxa answers about consistency without
+- **The solver is bundled and frozen.** endoxa answers about consistency without
   reaching for an external prover. Its correctness is asserted differentially
   against Z3 in dev-only tests rather than by its own suite alone.
 - **The ledger is the record, not a cache.** Operations are appended; the current

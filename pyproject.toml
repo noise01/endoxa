@@ -1,6 +1,6 @@
 [project]
-name = "doxa"
-version = "0.0.0"
+name = "endoxa"
+version = "0.0.1"
 description = "Governed beliefs for LLM agents: an append-only ledger, SMT-checked consistency, defeasible revision, and calibration instruments."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -34,8 +34,9 @@ trace = ["pydantic>=2.12.5"]
 coverage = ["networkx[default]>=3.6.1"]
 
 [project.urls]
-Homepage = "https://github.com/noise01/doxa"
-Issues = "https://github.com/noise01/doxa/issues"
+Homepage = "https://github.com/noise01/endoxa"
+Changelog = "https://github.com/noise01/endoxa/blob/main/CHANGELOG.md"
+Issues = "https://github.com/noise01/endoxa/issues"
 
 [build-system]
 requires = ["uv_build>=0.9.22,<0.13.0"]
@@ -99,7 +100,7 @@ pythonpath = ["."]
 addopts = ["--strict-markers", "--strict-config"]
 
 [tool.importlinter]
-root_package = "doxa"
+root_package = "endoxa"
 
 # The package is a DAG, and this states the whole of it: a layer may import the
 # layers below it and never the ones above. Reading it bottom-up --
@@ -113,15 +114,15 @@ root_package = "doxa"
 #                move.
 #
 # A new top-level package is not in this list and would escape the rule in
-# silence, so the port owes a completeness test that every subpackage of `doxa`
+# silence, so the port owes a completeness test that every subpackage of `endoxa`
 # appears here -- an enumeration without a check is an enumeration that rots.
 [[tool.importlinter.contracts]]
 name = "The package is a DAG"
 type = "layers"
 layers = [
-    "doxa.instruments",
-    "doxa.trace",
-    "doxa.governance",
-    "doxa.solver",
-    "doxa.syntax",
+    "endoxa.instruments",
+    "endoxa.trace",
+    "endoxa.governance",
+    "endoxa.solver",
+    "endoxa.syntax",
 ]

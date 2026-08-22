@@ -39,9 +39,9 @@ def _formulas() -> st.SearchStrategy:
 @given(_formulas())
 @settings(max_examples=1500, deadline=None)
 def test_doxa_solver_agrees_with_z3(formula) -> None:
-    """The frozen doxa solver must return the same SAT/UNSAT verdict as Z3."""
+    """The frozen endoxa solver must return the same SAT/UNSAT verdict as Z3."""
     result = differential_check(formula)
-    assert result.agree, f"solver disagreement: doxa={result.doxa} z3={result.z3} on {result.formula_repr}"
+    assert result.agree, f"solver disagreement: endoxa={result.endoxa} z3={result.z3} on {result.formula_repr}"
 
 
 def test_generator_produces_both_verdicts() -> None:
@@ -51,6 +51,6 @@ def test_generator_produces_both_verdicts() -> None:
     property above would be vacuously easy.
     """
     rng = random.Random(20260720)
-    verdicts = {differential_check(generate_formula(rng)).doxa for _ in range(500)}
+    verdicts = {differential_check(generate_formula(rng)).endoxa for _ in range(500)}
     assert "SAT" in verdicts, "generator produced no satisfiable formulas"
     assert "UNSAT" in verdicts, "generator produced no unsatisfiable formulas"

@@ -10,13 +10,13 @@ chaining and exclusion propagation.
 
 from typing import Any
 
-from doxa.governance.revision import (
+from endoxa.governance.revision import (
     PredicateConstraints,
     check_consistency,
     predicate_clauses,
     select_verified_revision_target,
 )
-from doxa.solver import Expr, parse_fof
+from endoxa.solver import Expr, parse_fof
 
 
 def _rule(tptp: str) -> Expr:

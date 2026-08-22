@@ -1,10 +1,10 @@
-"""Z3 differential oracle for the frozen doxa SMT solver.
+"""Z3 differential oracle for the frozen endoxa SMT solver.
 
 Renders one backend-neutral :mod:`tests.differential.formula` AST into both the
-doxa solver (``doxa.solver``) and Z3, checks satisfiability with
+endoxa solver (``endoxa.solver``) and Z3, checks satisfiability with
 each, and compares the verdicts. On the quantifier-free propositional fragment both
 solvers are complete, so the contract is strict: verdicts must both be decisive
-(SAT/UNSAT) and equal. A doxa UNKNOWN is recorded as an *incompleteness*
+(SAT/UNSAT) and equal. A endoxa UNKNOWN is recorded as an *incompleteness*
 (``agree=False``) rather than silently tolerated -- that too is a signal worth a red.
 
 Only the SAT/UNSAT *verdict* is compared, never the satisfying model: distinct
@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Literal
 
 import z3
 
-from doxa.solver import And, Bool, Implies, Not, Or, Solver
+from endoxa.solver import And, Bool, Implies, Not, Or, Solver
 from tests.differential.formula import And as NAnd
 from tests.differential.formula import Formula, format_formula
 from tests.differential.formula import Implies as NImplies
@@ -28,13 +28,13 @@ from tests.differential.formula import Or as NOr
 from tests.differential.formula import Var as NVar
 
 if TYPE_CHECKING:
-    from doxa.solver import Expr
+    from endoxa.solver import Expr
 
 Verdict = Literal["SAT", "UNSAT", "UNKNOWN"]
 
 
 def render_doxa(node: Formula) -> Expr:
-    """Render a neutral formula AST into a doxa-solver expression."""
+    """Render a neutral formula AST into a endoxa-solver expression."""
     match node:
         case NVar(name):
             return Bool(name)
@@ -89,7 +89,7 @@ class DifferentialResult:
     """Outcome of checking one formula against both solvers."""
 
     formula_repr: str
-    doxa: Verdict
+    endoxa: Verdict
     z3: Verdict
     agree: bool
 
@@ -98,14 +98,14 @@ def differential_check(node: Formula) -> DifferentialResult:
     """Check ``node`` with both solvers and compare their SAT/UNSAT verdicts.
 
     ``agree`` is True only when both verdicts are decisive (SAT/UNSAT) and equal.
-    A doxa UNKNOWN on this complete fragment counts as a disagreement.
+    A endoxa UNKNOWN on this complete fragment counts as a disagreement.
     """
-    doxa = _doxa_verdict(node)
+    endoxa = _doxa_verdict(node)
     z3_result = _z3_verdict(node)
-    agree = doxa == z3_result and doxa in ("SAT", "UNSAT")
+    agree = endoxa == z3_result and endoxa in ("SAT", "UNSAT")
     return DifferentialResult(
         formula_repr=format_formula(node),
-        doxa=doxa,
+        endoxa=endoxa,
         z3=z3_result,
         agree=agree,
     )

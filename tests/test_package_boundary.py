@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 #:
 #: Deliberately absent: "salience". It was on the original list because a learner
 #: over there was named after it, but the word itself is ordinary attention-research
-#: vocabulary and :class:`doxa.trace.Proposition` carries it as a field. Forbidding a
+#: vocabulary and :class:`endoxa.trace.Proposition` carries it as a field. Forbidding a
 #: word because something elsewhere was named after it is the wrong test.
 FORBIDDEN_WORDS = {
     "doppelganger": "the project this was extracted from",
@@ -112,7 +112,7 @@ def _contract_layers() -> set[str]:
         for contract in contracts["tool"]["importlinter"]["contracts"]
         if contract["type"] == "layers"
     )
-    return {layer.removeprefix("doxa.") for layer in layers}
+    return {layer.removeprefix("endoxa.") for layer in layers}
 
 
 class TestVocabulary:
@@ -136,7 +136,7 @@ class TestVocabulary:
 
     def test_a_planted_host_path_is_caught(self):
         assert _line_offences([("planted.py", "# see domains/memory.py")], HOST_PATH)
-        assert not _line_offences([("planted.py", "# see doxa/governance.py")], HOST_PATH)
+        assert not _line_offences([("planted.py", "# see endoxa/governance.py")], HOST_PATH)
 
     def test_no_decision_record_is_cited(self):
         offences = _line_offences(_real_files(), CITATION)
@@ -169,7 +169,7 @@ class TestContractCompleteness:
 
     def test_the_contract_and_the_packages_agree(self):
         declared = _contract_layers()
-        actual = {path.parent.name for path in (ROOT / "src" / "doxa").glob("*/__init__.py")}
+        actual = {path.parent.name for path in (ROOT / "src" / "endoxa").glob("*/__init__.py")}
         assert actual - declared == set(), f"packages outside the DAG contract: {sorted(actual - declared)}"
         assert declared - actual == set(), f"the contract names a package that is gone: {sorted(declared - actual)}"
 
