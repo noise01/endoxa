@@ -6,6 +6,16 @@ not a promise.
 
 ## Unreleased
 
+- **Corrected what 0.0.1 said about `governance.support`.** The note claimed the
+  module records a belief's footing and that nothing had exercised it. Neither
+  half was right. It records nothing: it folds *resolved* support states into a
+  verdict, because deciding whether an antecedent is still alive means reading a
+  host's state and this package does not know what that state is. And it has had
+  a direct test since the port, including the distinction the fold exists for —
+  that `out` and `indeterminate` must not collapse, or a paged-out antecedent
+  becomes counter-evidence against everything that once rested on it. What is
+  true, and what the note should have said, is about traffic rather than
+  coverage: see the amended 0.0.1 entry below.
 - **The calibration accumulators are tested directly.** They were reachable only
   through the windowed recomputation that folds them, which cannot construct an
   accumulator that has seen nothing and cannot state any of their contracts on
@@ -43,5 +53,11 @@ What is in it:
 
 Known gaps, stated because the tests do not state them: the calibration
 accumulators are covered indirectly at best, having been verified through the
-host's own suite rather than their own, and `governance.support` records the
-footing a belief stands on but was never exercised by the host that shipped it.
+host's own suite rather than their own, and the support fold has coverage but no
+traffic — its host calls it on every pass, yet across that host's whole archive
+no belief has ever been observed losing its footing, so the branch the fold
+exists to get right has never once been taken outside a test.
+
+*(Amended after release: the original wording said this module "records" a
+belief's footing and "was never exercised". It records nothing, and it is
+tested. The gap is the one stated above. See Unreleased.)*
