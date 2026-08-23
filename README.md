@@ -89,8 +89,14 @@ pip install "endoxa[coverage]"  # how densely rules connect predicates
 ## Design notes
 
 - **The solver is bundled and frozen.** endoxa answers about consistency without
-  reaching for an external prover. Its correctness is asserted differentially
-  against Z3 in dev-only tests rather than by its own suite alone.
+  reaching for an external prover. Its verdicts are checked against Z3's over
+  generated formulas in two fragments — propositional, and equality with
+  uninterpreted functions — chosen because both solvers are *complete* on them, so
+  a disagreement is a bug rather than an artefact of one giving up first.
+  Quantifier instantiation sits outside that on purpose: it is anytime, and
+  answers `UNKNOWN` when its budget runs out, which is a correct answer and not
+  one a verdict comparison can score. That part has ordinary tests instead. The
+  differential needs Z3, which is a dev dependency and is not shipped.
 - **The ledger is the record, not a cache.** Operations are appended; the current
   view is folded from them. An unsettleable conflict appears in that view as
   `UNRESOLVED` rather than as a silent choice.

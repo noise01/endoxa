@@ -129,11 +129,18 @@ branch = true
 precision = 2
 show_missing = true
 skip_covered = true
-# A ratchet against a drop worth noticing -- currently 85.79% -- not a lock on
-# the figure. Set at the exact measurement it would fail on every refactor that
-# moves the denominator by a statement, which is how a ratchet earns a reputation
-# for noise and then gets deleted. Raise it when the number clears the next whole
-# point; lowering it means writing down why.
+# A ratchet against a drop worth noticing, not a lock on the figure. Two things
+# keep it below what a run reports:
+#
+# - Part of the suite is a random sweep, so the number moves run to run. Measured
+#   over four runs: 86.63, 87.41, 87.39, 87.39 -- a spread of 0.78. A floor set at
+#   the number seen would fail on an unlucky Tuesday, which is how a ratchet earns
+#   a reputation for noise and then gets deleted.
+# - A refactor that moves the denominator by a statement is not a coverage
+#   regression and should not read as one.
+#
+# So: below the low end of the observed range, not below the mean. Raise it when
+# the range clears the next whole point; lowering it means writing down why.
 fail_under = 85
 
 [tool.mypy]

@@ -66,6 +66,14 @@ CITATION = re.compile(r"\b(?:ADR|RFC)s?\b")
 #: Documents that exist only in the repository this was extracted from.
 PRIVATE_DOC = re.compile(r"\bbacklog\.md\b|\bdocs/")
 
+#: The name this package was published under for one release, before the index
+#: refused it. Deliberately **not** written with ``\b``: an underscore is a word
+#: character, so ``\bdoxa\b`` matches neither ``render_doxa`` nor ``_doxa_verdict``
+#: -- which is how ten of them sat in the differential harness through a check that
+#: reported the tree clean. A rename hides in identifiers, which is exactly where a
+#: word-boundary rule cannot look.
+FORMER_NAME = re.compile(r"(?<![a-z])doxa(?![a-z])")
+
 #: What a redaction leaves behind when the name goes and the sentence does not get
 #: rewritten. Each of these was found in this package, not imagined for the test.
 SCARS = {
@@ -80,7 +88,7 @@ SCARS = {
 #: possessive rule fires on ``the class's`` and becomes a rule people delete rather
 #: than obey.
 SINGULARS_ENDING_IN_S = frozenset(
-    {"access", "basis", "class", "process", "socrates", "status", "success"},
+    {"access", "basis", "class", "harness", "process", "socrates", "status", "success", "witness"},
 )
 
 CJK = re.compile(r"[　-ヿ一-鿿]")
@@ -313,6 +321,27 @@ class TestVocabulary:
     def test_an_unnumbered_record_is_caught_too(self):
         """Dropping the number does not make the reference followable, only vaguer."""
         assert _line_offences([("planted.py", "# Three RFCs settled on holding both")], CITATION)
+
+    def test_the_former_name_is_gone(self):
+        offences = _line_offences(_real_files(), FORMER_NAME)
+        assert not offences, "the name this was published under before:\n" + "\n".join(offences)
+
+    def test_a_planted_former_name_is_caught(self):
+        """Including the two shapes a word-boundary rule cannot see."""
+        assert _line_offences([("planted.py", "def render_doxa(node):")], FORMER_NAME)
+        assert _line_offences([("planted.py", "x = _doxa_verdict(node)")], FORMER_NAME)
+        assert _line_offences([("planted.py", "# see doxa for why")], FORMER_NAME)
+
+    def test_a_word_boundary_rule_would_have_missed_them(self):
+        """Why this pattern is written the way it is, rather than the obvious way."""
+        obvious = re.compile(r"\bdoxa\b")
+        assert not obvious.search("def render_doxa(node):")
+        assert not obvious.search("x = _doxa_verdict(node)")
+
+    def test_the_current_name_is_not_caught(self):
+        """``endoxa`` ends in the old name and must not trip the rule."""
+        assert not _line_offences([("planted.py", "import endoxa.governance")], FORMER_NAME)
+        assert not _line_offences([("planted.py", "x = render_endoxa(node)")], FORMER_NAME)
 
     def test_no_private_document_is_named(self):
         offences = _prose_offences(_real_files(), PRIVATE_DOC)

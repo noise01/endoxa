@@ -38,7 +38,7 @@ def _formulas() -> st.SearchStrategy:
 
 @given(_formulas())
 @settings(max_examples=1500, deadline=None)
-def test_doxa_solver_agrees_with_z3(formula) -> None:
+def test_the_solver_agrees_with_z3(formula) -> None:
     """The frozen endoxa solver must return the same SAT/UNSAT verdict as Z3."""
     result = differential_check(formula)
     assert result.agree, f"solver disagreement: endoxa={result.endoxa} z3={result.z3} on {result.formula_repr}"
