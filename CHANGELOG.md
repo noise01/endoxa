@@ -6,6 +6,12 @@ not a promise.
 
 ## Unreleased
 
+- **`examples/`.** Three scripts: a contradiction that only exists under a rule
+  and what gives way when it surfaces; a conflict between two equally credible
+  claims, which gets a name and an end with an author rather than a coin flip;
+  and what the three instruments report about an agent's confidence. Each is run
+  by the test suite with the numbers its prose points at asserted, because an
+  example nobody executes is a promise nobody keeps.
 - **Corrected what 0.0.1 said about `governance.support`.** The note claimed the
   module records a belief's footing and that nothing had exercised it. Neither
   half was right. It records nothing: it folds *resolved* support states into a

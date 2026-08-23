@@ -82,6 +82,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"examples/**/*.py" = [
+    "INP001", # a directory of scripts is not a package
+    "T201",   # printing is what an example is for
+]
 "tests/**/*.py" = [
     "ANN001",
     "ANN201",

@@ -65,6 +65,10 @@ outcome.ops
 `govern` decides; it does not mutate. The operations it returns are what you
 append to the ledger and apply to your own store.
 
+Three runnable scripts go further — what happens over a run of turns, what a
+conflict that cannot be settled looks like, and what the instruments report. See
+[examples/](examples/).
+
 ## Install
 
 ```bash
