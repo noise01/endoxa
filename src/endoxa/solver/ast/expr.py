@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
+from endoxa.errors import ArityMismatchError, SortMismatchError
+
 from .sorts import BOOL_SORT, Sort
 
 
@@ -90,15 +92,15 @@ class App(Expr):
             for i, arg in enumerate(self.args):
                 if arg.sort != sort:
                     msg = f"Type mismatch in argument {i} of N-ary '{self.decl.name}': expected {sort}, got {arg.sort}"
-                    raise TypeError(msg)
+                    raise SortMismatchError(msg)
         else:
             if len(self.args) != len(self.decl.domain):
                 msg = f"Arity mismatch for '{self.decl.name}': expected {len(self.decl.domain)}, got {len(self.args)}"
-                raise ValueError(msg)
+                raise ArityMismatchError(msg)
             for i, (arg, sort) in enumerate(zip(self.args, self.decl.domain, strict=True)):
                 if arg.sort != sort:
                     msg = f"Type mismatch in argument {i} of '{self.decl.name}': expected {sort}, got {arg.sort}"
-                    raise TypeError(msg)
+                    raise SortMismatchError(msg)
 
     def __str__(self) -> str:
         if not self.args:

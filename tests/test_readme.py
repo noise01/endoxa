@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from endoxa.errors import RuleSyntaxError
+
 README = Path(__file__).resolve().parents[1] / "README.md"
 
 BLOCK = re.compile(r"^```python\n(.*?)^```", re.DOTALL | re.MULTILINE)
@@ -46,5 +48,8 @@ class TestTheExampleRuns:
         """Both ways the real example was broken, so the detector is known to fire."""
         with pytest.raises(TypeError):
             _run("from endoxa.governance import Rule\nRule(name='r', axiom='fof(a, axiom, p(x)).')")
-        with pytest.raises(Exception, match=r"(?i)unexpected|token"):
+        # Named rather than matched on the wording: a parse failure is this
+        # package's own error now, so the control can say which one instead of
+        # grepping a dependency's message for "unexpected".
+        with pytest.raises(RuleSyntaxError):
             _run("from endoxa.solver.parsers.tptp import parse_fof\nparse_fof('fof(a, axiom, p(x))')")

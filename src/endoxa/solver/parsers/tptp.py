@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import cast
 
 from lark import Lark, Token, Transformer, v_args
+from lark.exceptions import LarkError
 
+from endoxa.errors import RuleSyntaxError
 from endoxa.solver.api import And, Eq, Exists, ForAll, Implies, Not, Or
 from endoxa.solver.ast.context import global_ctx
 from endoxa.solver.ast.expr import App, BoundVar, Const, Expr, FuncDecl, Quantifier, Var
@@ -71,15 +73,41 @@ class FofTransformer(Transformer[Token, tuple[str, str, Expr]]):
 
 grammar_path = Path(__file__).parent.joinpath("tptp.lark")
 
-parser = Lark(grammar_path.read_text(), parser="lalr", transformer=FofTransformer())
+# Read as UTF-8 explicitly. Without it the encoding is the locale's, which on
+# Windows is a legacy code page -- and this runs at import, so a grammar file
+# it cannot decode is an ImportError rather than a parse failure.
+parser = Lark(grammar_path.read_text(encoding="utf-8"), parser="lalr", transformer=FofTransformer())
 
 
 def parse_fof(input_str: str) -> tuple[str, str, Expr]:
-    # ``Lark.parse`` is typed as returning a parse tree. This parser is built with
-    # a transformer, so LALR applies it during the parse and what comes back is
-    # whatever ``fof_annotated`` returned -- a fact about this parser's
-    # construction that the signature cannot carry.
-    return cast("tuple[str, str, Expr]", parser.parse(input_str))
+    """Parse one TPTP ``fof`` annotated formula into ``(name, role, formula)``.
+
+    Args:
+        input_str: A complete ``fof(name, role, formula).`` statement, terminating
+            period included.
+
+    Returns:
+        The formula's name and role as written, and the parsed expression.
+
+    Raises:
+        RuleSyntaxError: If the text is not a well-formed ``fof`` statement. The
+            grammar library's own diagnosis, which carries the line and column, is
+            chained as ``__cause__``.
+    """
+    try:
+        # ``Lark.parse`` is typed as returning a parse tree. This parser is built
+        # with a transformer, so LALR applies it during the parse and what comes
+        # back is whatever ``fof_annotated`` returned -- a fact about this parser's
+        # construction that the signature cannot carry.
+        return cast("tuple[str, str, Expr]", parser.parse(input_str))
+    except LarkError as exc:
+        # Translated at the boundary rather than allowed through. The grammar
+        # library is an implementation detail everywhere else in this package, and
+        # an exception type is an API: letting it out would make callers import a
+        # dependency to write an ``except`` clause, and would pin a choice this
+        # package reserves.
+        msg = f"not a well-formed TPTP fof statement: {input_str!r}"
+        raise RuleSyntaxError(msg) from exc
 
 
 def _app_to_tptp(expr: App) -> str:

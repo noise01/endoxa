@@ -32,6 +32,7 @@ in :mod:`endoxa.instruments.calibration.replay`.
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
+from endoxa.errors import InvalidArgumentError
 from endoxa.instruments.calibration.ask_policy import AskOutcome, AskOutcomeCounts
 from endoxa.instruments.calibration.competence import BrierAccumulator
 from endoxa.instruments.calibration.knowledge import KnowledgeCalibrationStats
@@ -164,11 +165,11 @@ def _tumbling[T](seq: Sequence[T], window_size: int) -> Iterator[tuple[int, Sequ
         ``(index, chunk)`` pairs, ``index`` zero-based in stream order.
 
     Raises:
-        ValueError: If ``window_size`` is less than 1.
+        InvalidArgumentError: If ``window_size`` is less than 1.
     """
     if window_size < 1:
         msg = f"window_size must be >= 1, got {window_size}"
-        raise ValueError(msg)
+        raise InvalidArgumentError(msg)
     for start in range(0, len(seq), window_size):
         yield start // window_size, seq[start : start + window_size]
 

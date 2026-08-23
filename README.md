@@ -97,6 +97,11 @@ pip install "endoxa[coverage]"  # how densely rules connect predicates
 - **Instruments are imported by nothing else.** A measure its subject can reach
   is a measure its subject can move, so the dependency is forbidden by contract
   and checked in CI.
+- **One name catches everything this raises.** `endoxa.errors.EndoxaError` is the
+  base of every error the library raises on its own behalf, and no dependency's
+  exceptions reach past the boundary — a malformed rule is a `RuleSyntaxError`,
+  not the grammar library's business. Each class is also the built-in you would
+  have reached for anyway, so `except ValueError` keeps working.
 - **Requires Python 3.14+.**
 
 ## Issues

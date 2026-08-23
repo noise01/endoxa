@@ -1,5 +1,6 @@
 from typing import Any, TypedDict
 
+from endoxa.errors import InternalError
 from endoxa.solver.ast.expr import App, Expr
 from endoxa.solver.sat.types import NULL_LITERAL, Clause, Lit, VarId
 
@@ -38,7 +39,7 @@ def _edge_terms(
         return t1, t2
     if eq_t1 is None or eq_t2 is None:
         msg = "a congruence merge must name the terms it rests on"
-        raise ValueError(msg)
+        raise InternalError(msg)
     return eq_t1, eq_t2
 
 
