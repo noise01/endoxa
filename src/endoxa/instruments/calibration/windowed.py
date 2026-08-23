@@ -15,13 +15,13 @@ Design:
   persisted log.
 - **Reuse, don't reimplement.** Each window folds the very same
   :class:`BrierAccumulator` / :class:`KnowledgeCalibrationStats` /
-  :class:`AskOutcomeCounts` the live module uses, starting from a fresh instance
-  per window. No new accounting logic is introduced here.
+  :class:`AskOutcomeCounts` the cumulative side uses, starting from a fresh
+  instance per window. No new accounting logic is introduced here.
 - **Knowledge first-time tracking is window-local.** The overconfidence /
   unknown-confirmation rates count, *within each window*, the targets newly
-  classified ``known`` / non-``known`` in that window (the live module tracks
-  ``_known_seen`` / ``_nonknown_seen`` across all time). Resetting per window is
-  what makes the rate a per-window quantity readable as a curve rather than a
+  classified ``known`` / non-``known`` in that window, where the cumulative side
+  tracks which targets it has already seen across all time. Resetting per window
+  is what makes the rate a per-window quantity readable as a curve rather than a
   cumulative fraction dominated by early observations.
 
 This module is a pure function of its inputs and unit-testable in isolation; the

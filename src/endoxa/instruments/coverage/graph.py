@@ -1,10 +1,9 @@
-"""Predicate adjacency extraction for the axiom-network coverage instrument.
+"""Predicate adjacency extraction for the rule-network coverage instrument.
 
-Pure, side-effect-free logic: builds a graph connecting
-predicate symbols that co-occur in the same active inference rule, so the
-network's density can be measured against the predicates actually asserted on
-the belief set. The wiring lives in a host; this
-module is unit-testable in isolation.
+Pure and side-effect-free: builds a graph connecting the predicate symbols that
+co-occur in the same active inference rule, so the network's density can be
+measured against the predicates actually asserted on the belief set. Supplying
+the rules and the belief set is the host's; reading the shape they make is this.
 """
 
 from itertools import combinations

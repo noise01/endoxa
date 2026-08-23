@@ -260,26 +260,25 @@ def find_link_culprits(
     The link-level twin of :func:`find_rule_culprits`. For each link in the
     constraint set, the clauses are **re-synthesised** with just that link dropped
     -- the clause set is always derived from the constraints, never carried around
-    -- and consistency is re-checked. A
-    link whose removal flips UNSAT to SAT is a culprit under the same single-fault
-    assumption the rule search uses.
+    -- and consistency is re-checked. A link whose removal flips UNSAT to SAT is a
+    culprit under the same single-fault assumption the rule search uses.
 
     This is what lets a wrong link die. Without it, every contradiction a mistaken
-    acquired link creates is resolved by retracting a *belief* -- whatever proposed it
-    error is transcribed into the belief set instead of being blamed on its source
-    .
+    acquired link creates is resolved by retracting a *belief*: whatever proposed
+    the link is never blamed, and its error is transcribed into the belief set
+    instead.
 
-    ``functional_predicates`` is not a candidate: it is a config bootstrap, not
-    acquired data, and its clashes are resolved by recency supersession upstream
-    . A contradiction no link participates in yields no culprit, so the
+    ``functional_predicates`` is not a candidate: it is a declared bootstrap rather
+    than acquired data, and its clashes are resolved by recency supersession before
+    this point. A contradiction no link participates in yields no culprit, so the
     revision falls through to the fact/rule paths unchanged.
 
     Args:
         beliefs: Mapping of belief node ID to its data.
         active_rule_exprs: All currently active rule expressions (base + learned),
             asserted throughout so a rule-driven contradiction is not blamed on a link.
-        links: The link sources. ``None`` (the default) yields no
-            candidates, which is the production baseline before any link is populated.
+        links: The link sources. ``None`` (the default) yields no candidates,
+            which is the baseline before any link is populated.
 
     Returns:
         The links whose removal restores SAT, in the deterministic order of
@@ -305,9 +304,10 @@ def select_revision_target(
 
     Prefers the lowest-confidence hypothesis in the UNSAT core; otherwise falls back to the
     lowest-confidence *fallible* belief -- one whose confidence is below 1.0. A confidence of
-    1.0 marks an inviolable belief (only ask-user grounding, writes it); everything
-    else, including user testimony stamped with interlocutor confidence,
-    is revisable. A belief carrying no explicit confidence defaults to 1.0 and so stays
+    1.0 marks an inviolable belief -- in practice only an answer the user was asked
+    for directly is written at 1.0; everything else, including user testimony
+    stamped with the confidence a host gives its interlocutor, is revisable. A
+    belief carrying no explicit confidence defaults to 1.0 and so stays
     inviolable -- revision fails safe toward not touching an unmarked belief. Returns None when
     nothing may be revised.
 
@@ -367,11 +367,12 @@ def select_verified_revision_target(  # noqa: PLR0913
     :func:`select_revision_target` picks the lowest-confidence fallible atom in the
     UNSAT core by TMS policy but never checks that flipping it resolves the clash.
     When a rule immediately re-derives that atom -- a consequent still forced by an
-    asserted antecedent -- the flip is a no-op and the contradiction persists. The
-    ablation ladder surfaced this "whiff" once exclusion links made independent
-    contradictions common. This selector verifies each candidate, in the
-    same preference order (hypotheses first, then lowest confidence), and returns
-    the first whose flip genuinely restores satisfiability.
+    asserted antecedent -- the flip is a no-op and the contradiction persists. Call
+    that a *whiff*: the selector swings at the conflict and the conflict is still
+    there. Whiffs become common as soon as exclusion links make independent
+    contradictions common. This selector verifies each candidate, in the same
+    preference order (hypotheses first, then lowest confidence), and returns the
+    first whose flip genuinely restores satisfiability.
 
     The re-check is scoped to the conflict's *own* sub-theory: the beliefs that share
     an individual with a core atom (its argument terms), plus the core atoms
@@ -398,9 +399,9 @@ def select_verified_revision_target(  # noqa: PLR0913
     nothing left to say about which should go, and the function returns None rather
     than take whichever the UNSAT core happened to name first. Being unsettleable is
     a failure of the preference, not of the solver, so the tie question path
-    (:mod:`endoxa.governance.revision.tie`) picks it up from there. A band where nothing settles falls
-    through to the next one, so a whiffed low-confidence band still yields to a
-    higher-confidence fix.
+    (:mod:`endoxa.governance.revision.tie`) picks it up from there. A band where
+    nothing settles falls through to the next one, so a whiffed low-confidence band
+    still yields to a higher-confidence fix.
 
     When no band settles anything -- a functional-exclusion pile-up of three or more
     values leaves a clash behind whichever single atom is flipped -- the first
@@ -490,19 +491,18 @@ def choose_revision_candidate(
     rule_confidences: Sequence[float],
     link_confidences: Sequence[float] = (),
 ) -> RevisionDecision | None:
-    """Pick the lowest-confidence contradiction-revision target (§2.10).
+    """Pick the lowest-confidence contradiction-revision target.
 
     Considers a fact-level target (a revisable belief atom), link-level targets
-    (acquired links whose retraction restores consistency)
-    and rule-level targets (defeasible learned rules). The
-    lowest-confidence candidate wins.
+    (acquired links whose retraction restores consistency) and rule-level targets
+    (defeasible learned rules). The lowest-confidence candidate wins.
 
     Ties break by **generality**, most local first: fact, then link, then rule. A
     link binds two predicates over every individual, so it is more general than a
     single belief; a learned rule can state an arbitrary formula, so it is more
     general than a link. The ordering is about blast radius, not about trust --
-    a link's provenance (a single upstream judgement) is if
-    anything weaker than a rule whose confidence grew through use.
+    where a link came from (a single upstream judgement) is if anything weaker
+    than a rule whose confidence grew through use.
 
     Args:
         fact_confidence: Confidence of the fact revision target, or ``None`` when

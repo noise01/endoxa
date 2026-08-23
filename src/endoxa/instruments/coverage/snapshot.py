@@ -1,9 +1,8 @@
 """A coherent, point-in-time view of how far the rules cover the belief set.
 
-Pure data aggregation only: ``CoverageSnapshot`` bundles the
-predicate adjacency graph (``graph.py``) with the predicate set currently
-asserted in the belief set, without introducing new inference logic. The
-wiring that populates it lives in a host.
+Pure data aggregation: :class:`CoverageSnapshot` bundles the predicate adjacency
+graph (:mod:`.graph`) with the predicate set currently asserted in the belief
+set, adding no inference logic of its own. Populating it is the host's.
 """
 
 from dataclasses import dataclass

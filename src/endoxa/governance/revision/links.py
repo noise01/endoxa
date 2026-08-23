@@ -81,12 +81,12 @@ class PredicateConstraints:
     :func:`inter_predicate_exclusion_clauses` and :func:`implication_clauses`
     so a caller can carry "the constraints the links impose" as one value and hand
     it to both the detection path (the consistency check) and the *revision* path
-    (whiff re-verification and rule-culprit search). Detection and resolution must see
-    the same constraints (extended to revision selection by);
-    passing them separately is what let the two drift apart.
+    (re-verification of a candidate flip, and the rule-culprit search). Detection
+    and resolution must see the same constraints; passing them separately is what
+    let the two drift apart.
 
-    The empty default is the production baseline: every field empty yields no clauses,
-    leaving every check byte-for-byte unchanged.
+    The empty default is the do-nothing baseline: every field empty yields no
+    clauses, leaving every check byte-for-byte unchanged.
     """
 
     functional_predicates: Collection[str] = ()
@@ -176,9 +176,9 @@ def functional_exclusion_clauses(
     For each predicate in ``functional_predicates``, group the true atoms by their
     leading arguments (``args[:-1]``) and, for each pair sharing those but differing
     in the final value (``args[-1]``), emit a ground exclusion clause. Mirrors the
-    functional-exclusion arm of :func:`.propagation.propagate` (same predicate, same
-    arity ``>= FUNCTIONAL_MIN_ARITY``, equal leading args, distinct final value) so
-    detection and this resolution constraint agree.
+    functional-exclusion arm of the host's in-the-moment detection (same predicate,
+    same arity ``>= FUNCTIONAL_MIN_ARITY``, equal leading args, distinct final
+    value) so detection and this resolution constraint agree.
 
     The arity floor is that mirror's, not this function's own judgement: below it
     the leading arguments are the empty tuple, so every atom of the predicate
@@ -230,27 +230,26 @@ def inter_predicate_exclusion_clauses(
 
     Generalises :func:`functional_exclusion_clauses` from the intra-predicate value
     swap to the inter-predicate forms -- pairwise antonym and exclusion class. For
-    each pair of true atoms that
-    share their *whole* argument tuple but whose predicates are declared mutually
-    exclusive, emit a ground exclusion clause. Mirrors the inter-predicate arm of
-    :func:`.propagation.propagate` (excluded predicate on the identical argument
-    tuple) so detection and this resolution constraint agree.
+    each pair of true atoms that share their *whole* argument tuple but whose
+    predicates are declared mutually exclusive, emit a ground exclusion clause.
+    Mirrors the inter-predicate arm of the host's in-the-moment detection (excluded
+    predicate on the identical argument tuple) so detection and this resolution
+    constraint agree.
 
     ``exclusion_targets`` maps a predicate to the predicate names it excludes. The
     relation is treated as *undirected* here: atoms ``p(args)`` and ``q(args)``
     clash when ``q`` is in ``exclusion_targets[p]`` **or** ``p`` is in
-    ``exclusion_targets[q]``. A host records an exclusion link on
-    the proposing symbol only (:func:`.memory._build_exclusion_links` adds no
-    reciprocal edge), and unit-propagation detection reads only the *newer* atom's
-    links, so it misses a clash asserted in the other order. Treating
-    the relation undirected here (a) guarantees every unit-propagation-detected
-    clash is representable and (b) additionally closes that assertion-order blind
-    spot at the deeper SMT tier -- two co-present, contradictory atoms are UNSAT
-    regardless of which was asserted last.
+    ``exclusion_targets[q]``. A host that records an exclusion link on the
+    proposing symbol only, with no reciprocal edge, and whose in-the-moment
+    detection reads only the *newer* atom's links, misses a clash asserted in the
+    other order. Treating the relation undirected here (a) guarantees every clash
+    that detection *does* catch is representable and (b) additionally closes that
+    assertion-order blind spot at the deeper SMT tier -- two co-present,
+    contradictory atoms are UNSAT regardless of which was asserted last.
 
-    Returns an empty list when ``exclusion_targets`` is empty (the production
-    default with no populated inter-predicate links), leaving the consistency
-    check byte-for-byte unchanged for every caller that does not opt in.
+    Returns an empty list when ``exclusion_targets`` is empty (no
+    inter-predicate links populated), leaving the consistency check
+    byte-for-byte unchanged for every caller that does not opt in.
 
     Args:
         beliefs: Mapping of belief node ID to its data (``truth_value`` etc.).
@@ -302,22 +301,23 @@ def implication_clauses(
     is symmetric, but ``cat(x) -> animal(x)`` does not license ``animal(x) -> cat(x)``,
     and symmetrizing would inject the false constraint that every animal is a cat.
 
-    A consequent *absent* from the beliefs yields no clause. This keeps the clause set
-    identical to unit propagation's escalation condition (a consequent held false,
-    :func:`.propagation.propagate`) per the detection/resolution agreement discipline
-    . Emitting the implication for an absent consequent would let the
-    solver *derive* ``q(args)`` -- forward materialization of a new atom, which is a
-    separate question about derived-atom provenance on the host's belief store,
-    not contradiction resolution.
+    A consequent *absent* from the beliefs yields no clause. This keeps the clause
+    set identical to the escalation condition of in-the-moment detection (a
+    consequent held false), per the discipline that detection and resolution must
+    agree. Emitting the implication for an absent consequent would let the solver
+    *derive* ``q(args)`` -- forward materialization of a new atom, which is a
+    separate question about where a derived atom came from on the host's belief
+    store, not contradiction resolution.
 
     Scanning beliefs pairs additionally closes the assertion-order blind spot of
-    in-beat detection (propagation reads only the newly asserted atom's links, so a
-    consequent asserted false *after* its antecedent is missed) -- the same deeper-tier
-    strengthening :func:`inter_predicate_exclusion_clauses` gets from undirectedness.
+    in-the-moment detection (which reads only the newly asserted atom's links, so a
+    consequent asserted false *after* its antecedent is missed) -- the same
+    deeper-tier strengthening :func:`inter_predicate_exclusion_clauses` gets from
+    undirectedness.
 
-    Returns an empty list when ``implication_targets`` is empty (the production
-    default with no populated implication links), leaving the consistency check
-    byte-for-byte unchanged for every caller that does not opt in.
+    Returns an empty list when ``implication_targets`` is empty (no implication
+    links populated), leaving the consistency check byte-for-byte unchanged for
+    every caller that does not opt in.
 
     Args:
         beliefs: Mapping of belief node ID to its data (``truth_value`` etc.).
@@ -366,7 +366,7 @@ def backward_implication_clauses(
     Verifying a belief asks whether an atom follows from the rest of them under
     the active constraints. Given only the axiom set, a consequence that the
     *links* license comes back as not entailed: a system can derive ``p(c)`` from
-    a link ``q => p`` on the propagation side and still fail to confirm it on the
+    a link ``q => p`` on the detection side and still fail to confirm it on the
     SMT side. That asymmetry makes a whole class of derivations invisible to
     verification.
 
@@ -391,13 +391,12 @@ def backward_implication_clauses(
     The verification invariant holds: the clauses are implications *toward* the target, never
     the target as a premise, so nothing here lets ``target`` prove itself. Exclusion
     links are deliberately not supplied -- ``Not(And(p, q))`` yields the entailment of
-    a *negation*, and a ``verify_belief`` target is a plan precondition, always
+    a *negation*, and a verification target is a plan precondition, always
     positive.
 
-    Returns an empty list when ``implication_targets`` is empty (the production
-    default with no populated implication links) or the target is unparseable,
-    leaving the verification query byte-for-byte unchanged for every caller that
-    does not opt in.
+    Returns an empty list when ``implication_targets`` is empty (no implication
+    links populated) or the target is unparseable, leaving the verification query
+    byte-for-byte unchanged for every caller that does not opt in.
 
     Args:
         target: The atom being verified, as a fact string (e.g. ``"mortal(socrates)"``).
@@ -454,13 +453,13 @@ def functional_exclusion_partner(
 ) -> tuple[str, dict[str, Any]] | None:
     """Find the atom that ``node_id`` functionally excludes and that is still held true.
 
-    Used by the resolution path: when a functional-exclusion clash
-    is escalated, ``node_id`` is the newly asserted atom, so its true,
-    same-leading-args, different-final-value partner
-    is the *older* belief the recency-supersession rule retracts. Functional
+    Used by the resolution path: when a functional-exclusion clash is escalated,
+    ``node_id`` is the newly asserted atom, so its true, same-leading-args,
+    different-final-value partner is the *older* belief the recency-supersession
+    rule retracts. Functional
     exclusion signals a state change ("moved"), not a miscalibration, so the newer
     claim wins and the older is superseded regardless of confidence (unlike the
-    confidence-driven :func:`.revision.select_verified_revision_target`).
+    confidence-driven :func:`.engine.select_verified_revision_target`).
 
     Returns the first such partner (pairwise clashes have one; a 3+-value pileup is
     resolved one partner at a time), or ``None`` when ``node_id`` is not a
