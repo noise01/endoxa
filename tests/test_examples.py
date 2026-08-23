@@ -1,0 +1,66 @@
+"""The examples run, and still say what their prose says they say.
+
+An example is a promise made in public, and the README already demonstrated how
+quietly one rots: its snippet had been broken twice over and nothing noticed
+until someone tried to install the package. So these are executed here as a
+reader would execute them -- as scripts, from the repository root -- and the
+numbers their prose points at are asserted, not just their exit codes.
+
+The enumeration checks itself. A fourth example added without a row below would
+otherwise be the one nobody runs.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+
+#: Each example, with the lines its own prose commits it to. Substrings rather
+#: than whole output: what is pinned is the claim, not the layout.
+CLAIMS: dict[str, tuple[str, ...]] = {
+    "01_a_contradiction_is_caught.py": (
+        "consistent: False",
+        # The weaker claim gives way, and the rule and the user's assertion do not.
+        "retract",
+        "mortal(socrates)",
+        "human(socrates)",
+    ),
+    "02_a_tie_is_not_a_coin_flip.py": (
+        # Both sides carry the hold, and neither is withdrawn.
+        "status=UNRESOLVED",
+        "held_with=outdoors(cat)",
+        "held_with=indoors(cat)",
+        # The answer ends it, and the end has an author.
+        "released_by=ask-17",
+    ),
+    "03_what_the_instruments_say.py": (
+        # The prose says a single score cannot tell "is" from "was"; these are
+        # the numbers that make the point, so they are the ones that must hold.
+        "Brier 0.332",
+        "0.631",
+        "1/3",
+        "resolution rate: 0.75",
+        "affirm rate:     0.67",
+    ),
+}
+
+
+def test_the_enumeration_covers_every_example() -> None:
+    on_disk = {path.name for path in EXAMPLES.glob("*.py")}
+    assert on_disk == set(CLAIMS), f"examples and claims disagree: {on_disk ^ set(CLAIMS)}"
+
+
+@pytest.mark.parametrize(("name", "claims"), CLAIMS.items())
+def test_the_example_runs_and_says_what_it_claims(name: str, claims: tuple[str, ...]) -> None:
+    result = subprocess.run(  # noqa: S603 -- a fixed path run by this interpreter, which is the point
+        [sys.executable, str(EXAMPLES / name)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, f"{name} exited {result.returncode}:\n{result.stderr}"
+    missing = [claim for claim in claims if claim not in result.stdout]
+    assert not missing, f"{name} no longer says {missing}:\n{result.stdout}"
