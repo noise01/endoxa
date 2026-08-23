@@ -63,8 +63,10 @@ def _app_to_tptp(expr: App) -> str:
         return f"({to_tptp(lhs)} | {to_tptp(rhs)})"
     if name == "Not":
         return f"~{to_tptp(expr.args[0])}"
-    if name == "Implies":
-        return f"({to_tptp(expr.args[0])} => {to_tptp(expr.args[1])})"
+    # No branch for "Implies". :func:`~endoxa.solver.Implies` builds
+    # ``Or(Not(p), q)`` and no declaration of that name is ever created, so such a
+    # branch could only fire on a caller's own predicate called ``Implies`` --
+    # where writing it out as an arrow would be wrong.
     if name == "Eq":
         return f"({to_tptp(expr.args[0])} = {to_tptp(expr.args[1])})"
 
