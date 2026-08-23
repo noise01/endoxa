@@ -4,6 +4,35 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## [Unreleased]
+
+### Changed
+
+- **Importing this package no longer builds a parser.** Compiling the TPTP
+  grammar and loading the library that compiles it cost about seventy
+  milliseconds, and every caller paid them at import — including one that only
+  reads a ledger, and one that only counts Brier scores, neither of which parses
+  anything. The grammar moved to `solver.parsers._grammar`, loaded on the first
+  parse and held from then on.
+
+  | import | before | after |
+  | --- | ---: | ---: |
+  | `endoxa.solver` | 101 ms | 33 ms |
+  | `endoxa.governance` | 111 ms | 48 ms |
+  | `endoxa.instruments.calibration` | 121 ms | 56 ms |
+
+  A first parse costs 67 ms once; every parse after it is unchanged. Nothing in
+  the public API moved — `parse_fof` and `to_tptp` are still
+  `endoxa.solver`'s. What did move is the module-level `parser` object inside
+  `solver.parsers.tptp`, which was never exported and which that package's own
+  docstring tells callers not to reach for.
+
+- **A test holds it there.** One top-level `from lark import ...` put back
+  anywhere undoes the whole thing, silently, with every other test still
+  passing. Each check runs in a fresh interpreter and asserts the library is
+  absent from `sys.modules`, with a control asserting it is present after a
+  parse — otherwise the check proves nothing.
+
 ## [0.3.0]
 
 A caller who wants to handle a bad rule string can now name what gets raised.
