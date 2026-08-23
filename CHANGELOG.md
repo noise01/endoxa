@@ -33,6 +33,26 @@ not a promise.
   absent from `sys.modules`, with a control asserting it is present after a
   parse — otherwise the check proves nothing.
 
+- **Coverage is measured in CI, with a floor.** 85.79% of branches, held at 85 as
+  a ratchet — a drop worth noticing becomes something someone decided rather than
+  something that happened. Branch coverage rather than line: a line that ran is
+  not a line whose alternatives ran, and the difference here is two points.
+
+  Measuring it found something the aggregate had been hiding. With the grammar
+  moved out, what remained of `solver.parsers.tptp` — the write-out half, all of
+  it public — measured **16%**: `to_tptp` is exported from `endoxa.solver` and no
+  test had ever called it. Writing those tests found two more things:
+
+  - **`to_tptp` could produce text `parse_fof` refuses.** It writes `$true` and
+    `$false` for the Boolean constants, and the grammar knew neither word. The
+    two are exported side by side; they agree now, and a round-trip test over
+    sixteen formulas says so.
+  - **A branch in the writer that could only ever be wrong.** It special-cased a
+    declaration named `Implies`, but `Implies` builds `Or(Not(p), q)` and no
+    declaration of that name is ever created — so the branch could only fire on a
+    caller's own predicate called `Implies`, and would have written it out as a
+    connective. Removed, with a test pinning that such a predicate stays one.
+
 ## [0.3.0]
 
 A caller who wants to handle a bad rule string can now name what gets raised.

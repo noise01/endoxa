@@ -17,7 +17,7 @@ from lark import Lark, Token, Transformer, v_args
 from lark.exceptions import LarkError
 
 from endoxa.errors import RuleSyntaxError
-from endoxa.solver.api import And, Eq, Exists, ForAll, Implies, Not, Or
+from endoxa.solver.api import And, BoolVal, Eq, Exists, ForAll, Implies, Not, Or
 from endoxa.solver.ast.context import global_ctx
 from endoxa.solver.ast.expr import BoundVar, Expr, FuncDecl
 from endoxa.solver.ast.sorts import BOOL_SORT, USort
@@ -54,6 +54,15 @@ class FofTransformer(Transformer[Token, tuple[str, str, Expr]]):
         functor, args = term_tuple
         decl = FuncDecl(functor, tuple(arg.sort for arg in args), BOOL_SORT)
         return global_ctx.mk_app(decl, *args)
+
+    # The two Boolean constants. ``to_tptp`` has always written them; until the
+    # grammar knew them, its output for a formula containing one was text this
+    # package's own parser refused.
+    def true_expr(self, _token: Token) -> Expr:
+        return BoolVal(val=True)
+
+    def false_expr(self, _token: Token) -> Expr:
+        return BoolVal(val=False)
 
     def eq_expr(self, left: Expr, right: Expr) -> Expr:
         return Eq(left, right)
