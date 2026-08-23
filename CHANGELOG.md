@@ -4,7 +4,7 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
-## 0.2.1
+## [0.2.1]
 
 `py.typed` shipped in 0.1.1 and said the annotations in here are usable. For 26
 of the 63 exported callables they were not, and had never been.
@@ -33,7 +33,7 @@ of the 63 exported callables they were not, and had never been.
   that 0.2.0 introduced raised as soon as anything read the annotation. The alias
   is subscripted where it is checked and bare where it is evaluated.
 
-## 0.2.0
+## [0.2.0]
 
 Two modules that could not be reached are gone, and a type checker now runs in
 CI. The checker was the interesting half: it found a loop that could not
@@ -98,7 +98,7 @@ was ever going to reach.
   than from `solver.ast.context`, which only imports it. Unchanged for anyone
   importing it from `endoxa.solver`, which is where the README says to.
 
-## 0.1.1
+## [0.1.1]
 
 The extraction took the host's names out and did not always repair the sentences
 around them. This release is that repair, and a set of checks so the next removal
@@ -138,7 +138,7 @@ cannot pass unnoticed.
   decision rather than an unfinished one: import from the layer you mean, because
   the layer a name belongs to is the most useful thing its address can tell you.
 
-## 0.1.0
+## [0.1.0]
 
 No API change. What moved is the evidence for it: of the two thin places 0.0.1
 named in its own entry, one is now covered directly and the other turned out not
@@ -177,7 +177,7 @@ to be a gap in this package at all.
   over the whole stream at once. The export list of
   `endoxa.instruments.calibration` is checked against the package both ways.
 
-## 0.0.1
+## [0.0.1]
 
 First release.
 
@@ -211,4 +211,10 @@ exists to get right has never once been taken outside a test.
 
 *(Amended after release: the original wording said this module "records" a
 belief's footing and "was never exercised". It records nothing, and it is
-tested. The gap is the one stated above. See Unreleased.)*
+tested. The gap is the one stated above. See the 0.1.0 entry.)*
+
+[0.2.1]: https://github.com/noise01/endoxa/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/noise01/endoxa/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/noise01/endoxa/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/noise01/endoxa/compare/v0.0.1...v0.1.0
+[0.0.1]: https://github.com/noise01/endoxa/releases/tag/v0.0.1
