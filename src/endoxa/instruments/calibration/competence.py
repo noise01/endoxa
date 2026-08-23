@@ -1,9 +1,8 @@
-"""Pure Brier-score accounting for the world model's competence calibration.
+"""Pure Brier-score accounting for how well an agent predicts its own success.
 
-Tracks how well predicted per-action success probabilities (from whatever
-produced them) match the eventually observed
-success/failure outcome. The wiring lives in
-a host; this module is unit-testable in isolation.
+Tracks how well predicted per-action success probabilities -- from whatever
+produced them -- match the success or failure eventually observed. Making the
+prediction and observing the outcome are the host's; scoring the pair is this.
 """
 
 from dataclasses import dataclass

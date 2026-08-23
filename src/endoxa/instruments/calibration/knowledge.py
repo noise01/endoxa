@@ -1,11 +1,9 @@
-"""Pure knowledge-calibration accounting for the self-model's epistemic facet.
+"""Pure accounting for how well an agent's ``known``/not-``known`` calls hold up.
 
-Tracks how often the self-model's ``known``/non-``known`` classifications hold
-up over time: a target once classified ``known`` that
-later leaves ``known`` is an overconfidence signal; a target once classified
-non-``known`` that later becomes ``known`` is a confirmation signal. The actor
-wiring lives in a host; this module is unit-testable in
-isolation.
+A target once classified ``known`` that later leaves ``known`` is an
+overconfidence signal; a target once classified non-``known`` that later becomes
+``known`` is a confirmation signal. Making the classification is the host's;
+counting how the classifications fared is this.
 """
 
 from dataclasses import dataclass

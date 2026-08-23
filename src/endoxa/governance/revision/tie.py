@@ -1,27 +1,25 @@
 """Contradiction ties that no revision can settle, turned into a question.
 
 The exclusion and implication tiers resolve every contradiction the solver can
-decide (..). What they deliberately leave alone is the *tie*:
-two beliefs of equal standing whose conflict has no cheaper side. Three RFCs
- settled on holding both rather than
-retracting one arbitrarily -- picking a side between two equally certain claims
-would be arbitrariness, not calibration.
+decide. What they deliberately leave alone is the *tie*: two beliefs of equal
+standing whose conflict has no cheaper side. The settled answer there is to hold
+both rather than retract one arbitrarily -- picking a side between two equally
+certain claims would be arbitrariness, not calibration.
 
-Holding both is right; staying silent about it is not. Before this module the
-tie surfaced only as a warning log in
-a warning log on the host's side.
-This module decides when a tie is well-formed enough to ask the user about, and
-what each answer would have to ground for the answer to actually settle it.
+Holding both is right; staying silent about it is not. Before this module a tie
+surfaced only as a warning on the host's side: something to read afterwards
+rather than something a caller could act on. This module decides when a tie is
+well-formed enough to ask the user about, and what each answer would have to
+ground for the answer to actually settle it.
 
 Scope: **any pair the revision preference cannot separate** -- two beliefs
 sharing a preference band (:mod:`.preference`). An earlier form of this gate had
 only the 1.0 case to generalise from and was written as "both inviolable"; 1.0 is
 now one band among others. What that newly admits is every *fallible*
-equal-confidence pair, and since ``interlocutor_confidence`` is a constant, that
-means every clash between two things the user said.
+equal-confidence pair, and where the confidence stamped on user testimony is a
+constant, that means every clash between two things the user said.
 
-Pure and basis-independent (governance tier): stdlib + sibling
-domain modules only.
+Pure: stdlib and this package's own revision logic only.
 """
 
 from dataclasses import dataclass
@@ -121,7 +119,7 @@ def select_tie_question_target(  # noqa: PLR0913
     max_rounds: int | None = None,
     links: PredicateConstraints | None = None,
 ) -> ContradictionTie | None:
-    """Decide whether a contradiction is a tie worth asking the user about (§5).
+    """Decide whether a contradiction is a tie worth asking the user about.
 
     Called where revision gave up: every fact, link and rule candidate was
     exhausted without a target. That branch covers more than ties (a conflict
@@ -136,12 +134,11 @@ def select_tie_question_target(  # noqa: PLR0913
     2. **The preference cannot separate them**: they share a band,
        and they are not hypotheses. An unequal pair got settled by revision and
        never reaches here.
-    3. **Both completions are SAT** (§5). The affirmative answer and the negative
+    3. **Both completions are SAT.** The affirmative answer and the negative
        answer each have to actually restore consistency. Asking a question whose
        answer leaves the contradiction standing spends the user's time and comes
        straight back on the next beat; this is the same discipline the verified
-       revision target applies to a flip, moved in front of
-       the question.
+       revision target applies to a flip, moved in front of the question.
 
     The sub-theory both completions are checked against is built exactly as
     :func:`~endoxa.governance.revision.engine.select_verified_revision_target`

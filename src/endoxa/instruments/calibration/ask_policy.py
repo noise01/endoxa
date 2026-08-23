@@ -1,10 +1,14 @@
-"""Pure ask-outcome accounting for the ask-user closed loop's policy quality.
+"""Pure ask-outcome accounting for an agent's decision to ask rather than assert.
 
-Scope: simple resolution-outcome
-counters only. Correlating an unasked "uncertain" classification with a later
-plan failure (a stronger measure of ``should_ask`` precision) is deliberately
-out of scope; see docs/backlog.md. The actor wiring lives in
-a host; this module is unit-testable in isolation.
+An agent that can put a question to the user instead of asserting an answer has
+a policy, and this counts what became of the questions that policy actually
+raised: affirmed, denied, or timed out.
+
+Scope: resolution-outcome counters only. Correlating an unasked "uncertain"
+classification with a failure that followed -- a stronger measure of the
+policy's precision -- would need the host to report that failure back, and is
+deliberately out of scope. Deciding when to ask is the host's; counting how the
+asking went is this.
 """
 
 from dataclasses import dataclass
