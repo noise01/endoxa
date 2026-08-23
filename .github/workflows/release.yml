@@ -90,4 +90,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \n            --title "${GITHUB_REF_NAME}" \n            --notes-file release-notes.md \n            dist/*
+          gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.md dist/*
