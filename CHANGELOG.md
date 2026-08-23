@@ -4,8 +4,19 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
-## Unreleased
+## 0.1.0
 
+No API change. What moved is the evidence for it: of the two thin places 0.0.1
+named in its own entry, one is now covered directly and the other turned out not
+to be a gap in this package at all.
+
+- **A policy on issues, and a place for security reports.** The tracker is open
+  and read, and no response time is offered — an open tracker with nothing
+  written next to it implies a maintenance commitment this cannot keep.
+  Vulnerabilities go to a private advisory rather than a public issue, and
+  `SECURITY.md` names the two shapes a problem here would take: rule text is
+  untrusted input reaching a parser, and a consistent belief set is not a true
+  one.
 - **`examples/`.** Three scripts: a contradiction that only exists under a rule
   and what gives way when it surfaces; a conflict between two equally credible
   claims, which gets a name and an end with an author rather than a coin flip;
