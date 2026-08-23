@@ -1,5 +1,5 @@
 import weakref
-from typing import Any
+from typing import Any, cast
 
 from .expr import App, BoundVar, Const, Expr, FuncDecl, Pattern, Quantifier, Var
 from .sorts import BOOL_SORT, Sort
@@ -85,8 +85,12 @@ class Context:
 
         return self._mk_cached(App, decl, args)
 
-    def mk_bound_var(self, name: str, sort: Sort) -> Expr:
-        return self._mk_cached(BoundVar, name, sort)
+    def mk_bound_var(self, name: str, sort: Sort) -> BoundVar:
+        # The hash-cons cache is generic over Expr subclasses and says so. This
+        # call fixes the class, so the narrower type is a fact about the argument
+        # rather than a hope, and stating it here spares every caller from
+        # restating it less truthfully.
+        return cast("BoundVar", self._mk_cached(BoundVar, name, sort))
 
     def mk_pattern(self, *exprs: Expr) -> Expr:
         return self._mk_cached(Pattern, tuple(exprs))

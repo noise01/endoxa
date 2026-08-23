@@ -39,9 +39,9 @@ returns.
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-from endoxa.governance.ledger import EVIDENCE_REASONS, EvidenceReason, LedgerOp, SupportRef
+from endoxa.governance.ledger import EVIDENCE_REASONS, EvidenceReason, LedgerOp, OpKind, SupportRef
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -329,6 +329,7 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     if SUPPORTED_BY_KEY in properties:
         state.supports[node_id] = _support_refs(properties.get(SUPPORTED_BY_KEY))
 
+    op: OpKind
     if payload.get("ask_grounding"):
         op = "ground"
     elif known is None:
@@ -343,7 +344,7 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
         state.truth[node_id] = stated_truth
     return [
         LedgerOp(
-            op=op,  # type: ignore[arg-type]  -- one of the seven, by construction above
+            op=op,
             target=node_id,
             actor=role,
             truth_value=stated_truth,
@@ -400,7 +401,9 @@ def _reason(value: object) -> EvidenceReason | None:
     a reason invented here.
     """
     if isinstance(value, str) and value in EVIDENCE_REASONS:
-        return value  # type: ignore[return-value]  -- membership above is the Literal
+        # The membership test *is* the narrowing; a checker cannot see that a
+        # frozenset of the Literal's own members proves the Literal.
+        return cast("EvidenceReason", value)
     return None
 
 

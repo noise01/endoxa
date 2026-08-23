@@ -97,7 +97,7 @@ def rule_antecedent_links(rule_exprs: Sequence[Expr]) -> dict[str, set[str]]:
     return links
 
 
-def build_predicate_graph(rule_exprs: Sequence[Expr]) -> nx.Graph:
+def build_predicate_graph(rule_exprs: Sequence[Expr]) -> nx.Graph[str]:
     """Build an undirected adjacency graph of predicate symbols.
 
     Two predicate symbols are connected if they co-occur in the same rule
@@ -113,7 +113,7 @@ def build_predicate_graph(rule_exprs: Sequence[Expr]) -> nx.Graph:
     Returns:
         A graph whose nodes are predicate symbol names.
     """
-    graph: nx.Graph = nx.Graph()
+    graph: nx.Graph[str] = nx.Graph()
     for expr in rule_exprs:
         symbols = _predicate_symbols(expr)
         graph.add_nodes_from(symbols)

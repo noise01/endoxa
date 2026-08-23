@@ -39,16 +39,16 @@ if TYPE_CHECKING:
 
     from endoxa.governance.ledger import LedgerOp, TargetKind
 
+BeliefStatus = Literal["HELD", "UNRESOLVED"]
+
 #: A belief the view holds outright.
-HELD = "HELD"
+HELD: BeliefStatus = "HELD"
 
 #: A belief the view holds *without* being able to prefer it or its rival: the
 #: first-class form of the unsettleable tie. Both sides of the tie
 #: carry it, and neither is withdrawn -- holding both is the calibrated answer,
 #: and picking one would be arbitrariness.
-UNRESOLVED = "UNRESOLVED"
-
-BeliefStatus = Literal["HELD", "UNRESOLVED"]
+UNRESOLVED: BeliefStatus = "UNRESOLVED"
 
 #: Mirrors :mod:`endoxa.governance.revision.preference`: a belief with no explicit confidence is
 #: inviolable, revision failing safe toward not touching an unmarked belief.

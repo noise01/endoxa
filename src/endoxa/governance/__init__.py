@@ -21,8 +21,6 @@ store.
 - :mod:`~endoxa.governance.revision` is the machinery every operation above is
   decided by -- the consistency check, the culprit searches, the preference
   ordering, and the detection of a conflict that cannot be settled from inside.
-- :mod:`~endoxa.governance.provenance` is the fixed set of names for where a belief
-  came from, and for what brought it back, that the ledger records.
 - :mod:`~endoxa.governance.knowledge` names where a belief sits relative to the
   knowledge boundary.
 

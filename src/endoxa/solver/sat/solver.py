@@ -1,11 +1,21 @@
 import heapq
 from typing import TYPE_CHECKING, Literal, TypedDict
 
-from .types import L_FALSE, L_TRUE, L_UNDEF, NULL_LITERAL, UNSAT_LITERAL, Clause, LBool, Lit, VarId
+from .types import (
+    L_FALSE,
+    L_TRUE,
+    L_UNDEF,
+    NULL_LITERAL,
+    UNSAT_LITERAL,
+    AssignHook,
+    Callbacks,
+    Clause,
+    LBool,
+    Lit,
+    VarId,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from endoxa.solver.theories.base import TheorySolver
 
 
@@ -17,7 +27,7 @@ class SATStats(TypedDict):
 
 
 class Trail:
-    def __init__(self, on_assign: Callable | None = None) -> None:
+    def __init__(self, on_assign: AssignHook | None = None) -> None:
         self.assignment: list[LBool] = []
         self.level: list[int] = []
         self.reason: list[Clause | None] = []
@@ -93,7 +103,7 @@ class Trail:
 
 
 class SATSolver:
-    def __init__(self, theory: TheorySolver | None = None, callbacks: dict | None = None) -> None:
+    def __init__(self, theory: TheorySolver | None = None, callbacks: Callbacks | None = None) -> None:
         self.theory = theory
         self.callbacks = callbacks
 
@@ -490,7 +500,9 @@ class SATSolver:
 
         trail_idx = len(stack) - 1
         curr_level = self.trail.get_decision_level()
-        clause = conflict
+        # Reassigned from ``trail.reason`` below, where a decision variable has no
+        # reason at all. The guards inside the loop are the consequence, not caution.
+        clause: Clause | None = conflict
         p = NULL_LITERAL
 
         while True:

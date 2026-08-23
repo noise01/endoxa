@@ -4,6 +4,71 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## 0.2.0
+
+Two modules that could not be reached are gone, and a type checker now runs in
+CI. The checker was the interesting half: it found a loop that could not
+terminate and a comparison that could never be false, neither of which any test
+was ever going to reach.
+
+### Removed
+
+- **`governance.provenance`** and **`solver.parsers.dimacs`**. Neither was
+  exported, neither was imported anywhere in the package, and neither had a test
+  — 118 lines that ran on no path. `dimacs` was also the only function here that
+  read a file, in a package whose security policy names untrusted input reaching
+  a parser as one of its two problem shapes; a parser nothing calls is a surface
+  with no purpose. The suite passes unchanged without them, which is the whole
+  argument for the removal.
+
+### Fixed
+
+- **A congruence merge with no terms named was a non-terminating loop.** An edge
+  in the equality graph carries the two terms whose equality it rests on, and the
+  explanation walk reads them back. The edge type allowed them to be absent, and
+  the walk defended itself with a guard that skipped such an edge *without
+  advancing to the next one*. Nothing ever built such an edge, so nothing ever
+  hung; the guard was reachable only in a state no caller could produce. It is
+  refused at the write now, the type no longer admits it, and the guard is gone.
+- **A quantifier was rebuilt on every substitution, including the ones that
+  changed nothing.** The walk decided whether to rebuild by comparing a freshly
+  built *list* of patterns against the stored *tuple* of them. A list is never
+  equal to a tuple however their contents match, so the test was true on every
+  pass. Hash-consing returned the identical object either way, which is why this
+  was invisible to every test and why the test added for it asserts that the
+  rebuild does not happen rather than what came back.
+- **A SAT preprocessing check could never fire.** `[[]] in clauses` asked whether
+  a list-of-lists was an element of a list of clauses. The `[] in clauses` beside
+  it is the one that means UNSAT.
+- **Three type suppressions suppressed nothing.** Two in `governance.derive` were
+  malformed — trailing prose after the error code makes the comment invalid, and
+  a checker reads it as a syntax error rather than as an instruction. A third
+  named a checker that is not among this project's dependencies. All three are
+  replaced by the narrowing they were standing in for.
+- **The TPTP transformer's annotations described the wrong things.** `term_list`
+  and `app_term` were typed as receiving tokens; by the time they run, the
+  grammar has already transformed their children into expressions.
+
+### Changed
+
+- **`mypy --strict` runs in CI**, over `src/endoxa`. Strict is what turns
+  `warn_unused_ignores` on, which is the setting that would have caught the
+  suppressions above the day they were written. The tests are deliberately out of
+  scope: they carry untyped fixtures, private access and planted violations on
+  purpose.
+- **`ForAll` and `Exists` take a `Sequence[Expr]`** rather than a `list[Expr]`.
+  They only iterate it. A `list` parameter is invariant, so a caller holding a
+  `list` of a subclass could not pass it.
+- **`SATSolver` and `SMTEngine` take a `Callbacks`** — `dict[str, Callable]`,
+  named in `solver.sat.types` alongside the rest of the search vocabulary —
+  rather than a bare `dict`. `Trail` takes an `AssignHook` with the signature it
+  actually calls.
+- **`mk_bound_var` returns a `BoundVar`**, not the `Expr` the shared hash-cons
+  cache is typed to return.
+- **`FuncDecl` is imported from `solver.ast.expr`**, where it is defined, rather
+  than from `solver.ast.context`, which only imports it. Unchanged for anyone
+  importing it from `endoxa.solver`, which is where the README says to.
+
 ## 0.1.1
 
 The extraction took the host's names out and did not always repair the sentences

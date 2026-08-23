@@ -1,4 +1,8 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 type VarId = int
 type Lit = int
@@ -23,3 +27,14 @@ class Clause:
 
     def __str__(self) -> str:
         return f"Clause({self.literals})"
+
+
+#: Called on every assignment the trail makes, for a host watching the search:
+#: the variable, the value it took, the decision level, and the clause that forced
+#: it (``None`` for a decision, which nothing forced).
+type AssignHook = Callable[[VarId, LBool, int, Clause | None], None]
+
+#: Optional hooks into the search, keyed by name: ``on_assign``, ``on_conflict``,
+#: ``on_learn``, ``on_backtrack``. Their signatures differ, so what is stated here
+#: is that the values are callable and the keys are the four above.
+type Callbacks = dict[str, Callable[..., Any]]

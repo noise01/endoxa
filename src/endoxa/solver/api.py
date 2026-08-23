@@ -1,10 +1,13 @@
 from typing import TYPE_CHECKING, Any, Literal
 
-from endoxa.solver.ast.context import AND_DECL, NOT_DECL, OR_DECL, FuncDecl, global_ctx
+from endoxa.solver.ast.context import AND_DECL, NOT_DECL, OR_DECL, global_ctx
+from endoxa.solver.ast.expr import FuncDecl
 from endoxa.solver.ast.sorts import BOOL_SORT, INT_SORT, Sort
 from endoxa.solver.engine import SMTEngine
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from endoxa.solver.ast.expr import Expr
 
 
@@ -93,11 +96,11 @@ def MultiPattern(*exprs: Expr) -> Expr:  # noqa: N802
     return global_ctx.mk_pattern(*exprs)
 
 
-def ForAll(bound_vars: list[Expr], body: Expr, patterns: list[Expr] | None = None) -> Expr:  # noqa: N802
+def ForAll(bound_vars: Sequence[Expr], body: Expr, patterns: Sequence[Expr] | None = None) -> Expr:  # noqa: N802
     pats = tuple(patterns) if patterns else ()
     return global_ctx.mk_quantifier(is_forall=True, bound_vars=tuple(bound_vars), body=body, patterns=pats)
 
 
-def Exists(bound_vars: list[Expr], body: Expr, patterns: list[Expr] | None = None) -> Expr:  # noqa: N802
+def Exists(bound_vars: Sequence[Expr], body: Expr, patterns: Sequence[Expr] | None = None) -> Expr:  # noqa: N802
     pats = tuple(patterns) if patterns else ()
     return global_ctx.mk_quantifier(is_forall=False, bound_vars=tuple(bound_vars), body=body, patterns=pats)
