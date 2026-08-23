@@ -20,6 +20,8 @@ jobs:
       # Trusted publishing exchanges this short-lived token for an upload token at
       # PyPI. Nothing about the account is stored in this repository.
       id-token: write
+      # To cut the GitHub release at the end.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +34,7 @@ jobs:
       - name: Sync
         run: uv sync --all-extras --dev
 
-      # The same four checks CI runs, repeated rather than assumed. A tag can point
+      # The same checks CI runs, repeated rather than assumed. A tag can point
       # at a commit CI never saw -- a rebase, a branch that was never pushed -- and
       # this is the one place where "it was green somewhere" does not undo itself.
       - name: Lint
@@ -63,5 +65,29 @@ jobs:
             exit 1
           fi
 
+      # Before the upload, not after: a version with no entry is a version nobody
+      # wrote down what changed in, and PyPI will not take the fix -- it refuses a
+      # second upload of a version it already has.
+      - name: The changelog has an entry for this version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [${version}]" '
+            $0 == heading { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "CHANGELOG.md has no '## [${version}]' section" >&2
+            exit 1
+          fi
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      # After the upload. A release announcing a version that is not on the index
+      # sends readers somewhere they cannot install from.
+      - name: Cut the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \n            --title "${GITHUB_REF_NAME}" \n            --notes-file release-notes.md \n            dist/*

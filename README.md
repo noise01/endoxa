@@ -71,6 +71,10 @@ conflict that cannot be settled looks like, and what the instruments report. See
 
 ## Install
 
+**Requires Python 3.14 or newer.** That floor is real rather than cautious: the
+package is written in 3.14 syntax and will not parse on an older interpreter. If
+`pip` declines to install this, that is why.
+
 ```bash
 pip install endoxa
 ```
