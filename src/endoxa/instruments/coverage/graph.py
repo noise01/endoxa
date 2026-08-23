@@ -6,17 +6,23 @@ measured against the predicates actually asserted on the belief set. Supplying
 the rules and the belief set is the host's; reading the shape they make is this.
 """
 
+from collections.abc import Sequence
 from itertools import combinations
 from typing import TYPE_CHECKING
 
 import networkx as nx
 
-from endoxa.solver import BOOL_SORT, App
+from endoxa.solver import BOOL_SORT, App, Expr
 
+# ``nx.Graph`` is generic to a type checker and a plain class at runtime, so
+# ``nx.Graph[str]`` in a signature raises when anything reads the annotations
+# back -- and this package ships ``py.typed``, which is a promise that they can
+# be read. The alias is the usual way out: subscripted where it is checked,
+# bare where it is evaluated.
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from endoxa.solver import Expr
+    PredicateGraph = nx.Graph[str]
+else:
+    PredicateGraph = nx.Graph
 
 # Connective/equality declaration names that are never predicate symbols, even
 # though they're Bool-sorted applications like any predicate.
@@ -97,7 +103,7 @@ def rule_antecedent_links(rule_exprs: Sequence[Expr]) -> dict[str, set[str]]:
     return links
 
 
-def build_predicate_graph(rule_exprs: Sequence[Expr]) -> nx.Graph[str]:
+def build_predicate_graph(rule_exprs: Sequence[Expr]) -> PredicateGraph:
     """Build an undirected adjacency graph of predicate symbols.
 
     Two predicate symbols are connected if they co-occur in the same rule
@@ -113,7 +119,7 @@ def build_predicate_graph(rule_exprs: Sequence[Expr]) -> nx.Graph[str]:
     Returns:
         A graph whose nodes are predicate symbol names.
     """
-    graph: nx.Graph[str] = nx.Graph()
+    graph: PredicateGraph = nx.Graph()
     for expr in rule_exprs:
         symbols = _predicate_symbols(expr)
         graph.add_nodes_from(symbols)

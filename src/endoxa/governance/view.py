@@ -31,13 +31,11 @@ evidence.
 Pure and dependency-free: stdlib only.
 """
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
-
-    from endoxa.governance.ledger import LedgerOp, TargetKind
+from endoxa.governance.ledger import LedgerOp, TargetKind
 
 BeliefStatus = Literal["HELD", "UNRESOLVED"]
 

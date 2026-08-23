@@ -1,11 +1,12 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from endoxa.governance.revision.facts import parse_fact_to_expr
 from endoxa.governance.revision.links import PredicateConstraints, PredicateLink, predicate_clauses
 from endoxa.governance.revision.preference import is_hypothesis, preference_bands, revision_candidates
-from endoxa.solver import Not, Solver
+from endoxa.solver import Expr, Not, Solver
 
 # Argument terms of a ground fact string, e.g. "r(a, b)" -> ("a", "b"). A
 # propositional atom (no parentheses) yields no terms.
@@ -21,11 +22,6 @@ _RULE_TIE_RANK = 2
 # Two candidates of equal standing both settling the conflict is where the
 # preference runs out. One is a decision; two is a tie.
 _UNSETTLEABLE_ARITY = 2
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from endoxa.solver import Expr
 
 
 def build_assumptions(beliefs: dict[str, dict[str, Any]]) -> tuple[list[Expr], dict[str, str]]:

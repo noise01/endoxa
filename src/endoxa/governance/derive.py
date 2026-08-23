@@ -37,14 +37,12 @@ returns.
 """
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 from endoxa.governance.ledger import EVIDENCE_REASONS, EvidenceReason, LedgerOp, OpKind, SupportRef
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
 
 #: Host event class names the derivation reads. Pinned against the real classes
 #: by a host-side test (see the module docstring).

@@ -34,8 +34,9 @@ Depends only on the bundled solver (:mod:`endoxa.solver`) and on this package's 
 revision logic (:mod:`endoxa.governance.revision`).
 """
 
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from endoxa.governance.ledger import LedgerOp
 from endoxa.governance.revision import (
@@ -47,12 +48,7 @@ from endoxa.governance.revision import (
     select_tie_question_target,
     select_verified_revision_target,
 )
-from endoxa.solver import parse_fof
-
-if TYPE_CHECKING:
-    from collections.abc import Collection, Sequence
-
-    from endoxa.solver import Expr
+from endoxa.solver import Expr, parse_fof
 
 #: ``actor`` stamped on the operations governance itself decides. A host that
 #: applies one writes it under whatever role its own beliefs use; what the ledger

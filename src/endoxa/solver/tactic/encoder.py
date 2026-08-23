@@ -1,10 +1,8 @@
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
 
 from endoxa.solver.ast.expr import App, Const, Expr, Quantifier, Var
 from endoxa.solver.ast.sorts import BoolSort
-
-if TYPE_CHECKING:
-    from endoxa.solver.sat.types import Lit, VarId
+from endoxa.solver.sat.types import Lit, VarId
 
 
 class EncoderStats(TypedDict):

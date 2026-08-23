@@ -15,17 +15,15 @@ than quietly exceeding it.
 """
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from endoxa.instruments.calibration.windowed import (
     AskObservation,
     CompetenceObservation,
     KnowledgeObservation,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 PREDICTION_OUTCOME_EVENT = "PredictionOutcomeEvent"
 KNOWLEDGE_SIGNAL_EVENT = "KnowledgeCalibrationSignalEvent"

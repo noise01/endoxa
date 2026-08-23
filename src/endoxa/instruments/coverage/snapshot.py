@@ -5,18 +5,14 @@ graph (:mod:`.graph`) with the predicate set currently asserted in the belief
 set, adding no inference logic of its own. Populating it is the host's.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import networkx as nx
 
 from endoxa.instruments.coverage.graph import build_predicate_graph
+from endoxa.solver import Expr
 from endoxa.syntax.atoms import parse_atom
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from endoxa.solver import Expr
 
 
 @dataclass(slots=True, frozen=True)

@@ -1,5 +1,7 @@
 import heapq
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import Literal, TypedDict
+
+from endoxa.solver.theories.base import TheorySolver
 
 from .types import (
     L_FALSE,
@@ -14,9 +16,6 @@ from .types import (
     Lit,
     VarId,
 )
-
-if TYPE_CHECKING:
-    from endoxa.solver.theories.base import TheorySolver
 
 
 class SATStats(TypedDict):

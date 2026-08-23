@@ -7,10 +7,8 @@ counting how the classifications fared is this.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from endoxa.governance.knowledge import EpistemicStatus
+from endoxa.governance.knowledge import EpistemicStatus
 
 
 @dataclass(slots=True, frozen=True)

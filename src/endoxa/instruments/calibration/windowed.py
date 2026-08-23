@@ -29,15 +29,12 @@ replay adapter that builds the observation streams from persisted events lives
 in :mod:`endoxa.instruments.calibration.replay`.
 """
 
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from endoxa.instruments.calibration.ask_policy import AskOutcome, AskOutcomeCounts
 from endoxa.instruments.calibration.competence import BrierAccumulator
 from endoxa.instruments.calibration.knowledge import KnowledgeCalibrationStats
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
 
 
 @dataclass(slots=True, frozen=True)

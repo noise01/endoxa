@@ -4,6 +4,35 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## 0.2.1
+
+`py.typed` shipped in 0.1.1 and said the annotations in here are usable. For 26
+of the 63 exported callables they were not, and had never been.
+
+- **Annotations on the public API could not be read back.** Reading a signature
+  -- ``typing.get_type_hints``, ``inspect.signature``, a docs generator, a
+  runtime validator -- raised ``NameError`` for the whole solver construction
+  API (``And``, ``Or``, ``Not``, ``ForAll``, ``Exists`` and the rest), five
+  functions in ``governance``, every windowed calibration function, and both
+  coverage entry points. The cause is a linter rule doing its job: an import used
+  only in annotations gets moved into ``if TYPE_CHECKING`` to save import time,
+  and under PEP 649 the name is then looked up, at the moment something reads the
+  annotation, in a namespace that does not have it. Nothing failed at import.
+  Nothing failed in a test. An annotation nobody reads cannot be caught by
+  running the code, which is the whole reason it survived two releases.
+
+  Fixed by importing those names at runtime, in the twenty-four modules that had
+  moved them. ``TC001``/``TC002``/``TC003`` are switched off with the reason
+  written next to them, or they would put every one of them back.
+- **A test now holds the promise.** It walks every package under ``endoxa`` that
+  declares ``__all__`` -- read off the source tree, not from a list that would
+  need keeping in step -- and calls ``get_type_hints`` on everything exported.
+  With a positive control that plants the exact shape and shows it caught.
+- **``build_predicate_graph`` returns a ``PredicateGraph``.** ``nx.Graph`` is
+  generic to a type checker and a plain class at runtime, so the ``nx.Graph[str]``
+  that 0.2.0 introduced raised as soon as anything read the annotation. The alias
+  is subscripted where it is checked and bare where it is evaluated.
+
 ## 0.2.0
 
 Two modules that could not be reached are gone, and a type checker now runs in
