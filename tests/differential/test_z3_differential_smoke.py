@@ -23,7 +23,7 @@ _SMOKE_SEED = 20260720
 _SMOKE_COUNT = 60
 
 
-def test_doxa_solver_agrees_with_z3_on_seeded_batch() -> None:
+def test_the_solver_agrees_with_z3_on_seeded_batch() -> None:
     """A fixed seeded batch of propositional formulas must agree between solvers."""
     rng = random.Random(_SMOKE_SEED)
     verdicts: set[str] = set()
