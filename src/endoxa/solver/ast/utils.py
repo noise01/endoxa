@@ -32,7 +32,11 @@ def substitute(expr: Expr, theta: dict[BoundVar, Expr], cache: dict[Expr, Expr] 
                     new_exprs = tuple(substitute(e, new_theta, new_cache) for e in pattern.exprs)
                     new_patterns.append(global_ctx.mk_pattern(*new_exprs))
 
-                if new_body is not body or new_patterns != patterns:
+                # Compared as a tuple against a tuple. A list is never equal to a
+                # tuple however its contents match, so comparing the two directly
+                # made this condition unconditionally true and rebuilt every
+                # quantifier the walk touched, substitution or none.
+                if new_body is not body or tuple(new_patterns) != patterns:
                     result = global_ctx.mk_quantifier(
                         is_forall=is_forall,
                         bound_vars=bound_vars,

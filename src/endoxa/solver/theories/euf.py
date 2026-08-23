@@ -15,13 +15,40 @@ class EUFStats(TypedDict):
 type TermId = int
 
 
+def _edge_terms(
+    t1: TermId,
+    t2: TermId,
+    reason_lit: Lit,
+    eq_t1: TermId | None,
+    eq_t2: TermId | None,
+) -> tuple[TermId, TermId]:
+    """Resolve the pair of terms the explanation walk reads back off an edge.
+
+    An edge asserted by a literal rests on the two terms that literal equates. A
+    congruence edge carries no literal, so the caller has to name them, and there
+    is nothing to fall back on if it does not: the walk crosses every edge and
+    explains it in terms of this pair.
+
+    Refused rather than allowed through as ``None``. The walk cannot represent
+    their absence -- the guard that used to stand in for that skipped the edge
+    without advancing to the next one, which is a loop rather than a recovery --
+    so the absence is stopped at the write, where it can still be attributed.
+    """
+    if reason_lit != NULL_LITERAL:
+        return t1, t2
+    if eq_t1 is None or eq_t2 is None:
+        msg = "a congruence merge must name the terms it rests on"
+        raise ValueError(msg)
+    return eq_t1, eq_t2
+
+
 class EUFSolver(TheorySolver):
     def __init__(self) -> None:
         self.var_to_eq: dict[VarId, tuple[TermId, TermId]] = {}
         self.expr_to_term: dict[Expr, TermId] = {}
         self.parent: list[TermId] = []
         self.size: list[int] = []
-        self.parent_edge: dict[TermId, tuple[TermId, Lit, TermId | None, TermId | None]] = {}
+        self.parent_edge: dict[TermId, tuple[TermId, Lit, TermId, TermId]] = {}
 
         self.history: list[tuple[str, Any]] = []
         self.history_limits: list[int] = []
@@ -119,8 +146,7 @@ class EUFSolver(TheorySolver):
         self.parent[root2] = root1
         self.size[root1] += self.size[root2]
 
-        u = eq_t1 if reason_lit == NULL_LITERAL else t1
-        v = eq_t2 if reason_lit == NULL_LITERAL else t2
+        u, v = _edge_terms(t1, t2, reason_lit, eq_t1, eq_t2)
         self.parent_edge[root2] = (root1, reason_lit, u, v)
 
         old_use_list = self.use_list[root2]
@@ -187,8 +213,6 @@ class EUFSolver(TheorySolver):
         curr = t1
         while curr in self.parent_edge:
             nxt, lit, u, v = self.parent_edge[curr]
-            if u is None or v is None:
-                continue
             path1[curr] = (nxt, lit, u, v)
             curr = nxt
 

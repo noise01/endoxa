@@ -35,8 +35,8 @@ from endoxa.solver.api import (
     Or,
     Solver,
 )
-from endoxa.solver.ast.context import FuncDecl, global_ctx
-from endoxa.solver.ast.expr import App, Const, Expr, Quantifier, Var
+from endoxa.solver.ast.context import global_ctx
+from endoxa.solver.ast.expr import App, Const, Expr, FuncDecl, Quantifier, Var
 from endoxa.solver.ast.sorts import BOOL_SORT, INT_SORT, Sort, USort
 from endoxa.solver.parsers import parse_fof, to_tptp
 

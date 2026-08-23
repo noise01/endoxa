@@ -1,30 +1,34 @@
 from pathlib import Path
+from typing import cast
 
 from lark import Lark, Token, Transformer, v_args
 
 from endoxa.solver.api import And, Eq, Exists, ForAll, Implies, Not, Or
-from endoxa.solver.ast.context import FuncDecl, global_ctx
-from endoxa.solver.ast.expr import App, BoundVar, Const, Expr, Quantifier, Var
+from endoxa.solver.ast.context import global_ctx
+from endoxa.solver.ast.expr import App, BoundVar, Const, Expr, FuncDecl, Quantifier, Var
 from endoxa.solver.ast.sorts import BOOL_SORT, USort
 
 U = USort("U")
 
 
 @v_args(inline=True)
-class FofTransformer(Transformer):
+class FofTransformer(Transformer[Token, tuple[str, str, Expr]]):
     def var_expr(self, name: Token) -> BoundVar:
         return global_ctx.mk_bound_var(str(name), U)
 
     def var_list(self, *names: Token) -> list[BoundVar]:
         return [global_ctx.mk_bound_var(str(v_name), U) for v_name in names]
 
-    def term_list(self, *terms: Token) -> tuple[Token, ...]:
+    # ``term_list: fof_term ("," fof_term)*``, and a ``fof_term`` has already
+    # been transformed into an Expr by the time this runs -- these are not
+    # tokens, whatever the rule they came from is spelled with.
+    def term_list(self, *terms: Expr) -> tuple[Expr, ...]:
         return terms
 
-    def const_term(self, functor: Token) -> tuple[str, tuple]:
+    def const_term(self, functor: Token) -> tuple[str, tuple[Expr, ...]]:
         return (str(functor), ())
 
-    def app_term(self, functor: Token, terms: Token) -> tuple[str, tuple]:
+    def app_term(self, functor: Token, terms: tuple[Expr, ...]) -> tuple[str, tuple[Expr, ...]]:
         return (str(functor), tuple(terms))
 
     def term_expr(self, term_tuple: tuple[str, tuple[Expr, ...]]) -> Expr:
@@ -71,8 +75,11 @@ parser = Lark(grammar_path.read_text(), parser="lalr", transformer=FofTransforme
 
 
 def parse_fof(input_str: str) -> tuple[str, str, Expr]:
-    tree: tuple[str, str, Expr] = parser.parse(input_str)  # ty:ignore[invalid-assignment]
-    return tree
+    # ``Lark.parse`` is typed as returning a parse tree. This parser is built with
+    # a transformer, so LALR applies it during the parse and what comes back is
+    # whatever ``fof_annotated`` returned -- a fact about this parser's
+    # construction that the signature cannot carry.
+    return cast("tuple[str, str, Expr]", parser.parse(input_str))
 
 
 def _app_to_tptp(expr: App) -> str:

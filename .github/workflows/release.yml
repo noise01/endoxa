@@ -44,6 +44,9 @@ jobs:
       - name: Import contracts
         run: uv run lint-imports
 
+      - name: Types
+        run: uv run mypy
+
       - name: Test
         run: uv run pytest
 

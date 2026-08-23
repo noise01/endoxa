@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from endoxa.solver.ast.context import NOT_DECL, OR_DECL, global_ctx
 from endoxa.solver.ast.expr import App, Expr, Quantifier, Var
@@ -9,11 +9,13 @@ from endoxa.solver.tactic import Preprocessor, Skolemizer, TseitinEncoder
 from endoxa.solver.theories import EUFSolver
 
 if TYPE_CHECKING:
-    from endoxa.solver.sat.types import Lit
+    from collections.abc import Mapping
+
+    from endoxa.solver.sat.types import Callbacks, Lit
 
 
 class SMTEngine:
-    def __init__(self, callbacks: dict | None = None) -> None:
+    def __init__(self, callbacks: Callbacks | None = None) -> None:
         self.encoder: TseitinEncoder = TseitinEncoder()
         self.euf: EUFSolver = EUFSolver()
         self.ematcher: EMatcher = EMatcher(self.euf)
@@ -27,12 +29,25 @@ class SMTEngine:
         self.is_unsat = False
         self.unsat_core_exprs: list[Expr] | None = None
 
-        self.stats: dict = {}  # NOTE: Incomplete type hint
+        # Merged from the encoder, preprocessor, SAT solver and EUF theory, each
+        # of which keeps its own TypedDict. Flattening them loses the per-source
+        # key names, so the merged view is as narrow as it can honestly be.
+        self.stats: dict[str, int] = {}
+
+    def _absorb(self, counters: object) -> None:
+        """Fold one component's counter block into the merged view.
+
+        Each component keeps its counters in a ``TypedDict`` of its own. A
+        ``TypedDict`` is not a ``Mapping[str, int]`` to a type checker even when
+        every key it declares holds an int, so the cast states that once here
+        rather than at each of the four sources.
+        """
+        self.stats.update(cast("Mapping[str, int]", counters))
 
     def _encode_and_simplify(self, expr: Expr, *, is_assumption: bool = False) -> tuple[list[list[Lit]], int, int, Lit]:
         old_var_count = self.encoder.next_var
         new_var_count, new_clauses, root_lit = self.encoder.run_incremental(expr, is_assumption=is_assumption)
-        self.stats.update(self.encoder.stats)
+        self._absorb(self.encoder.stats)
 
         protected_vars = set(range(old_var_count))
         for var_id in range(old_var_count, new_var_count):
@@ -47,7 +62,7 @@ class SMTEngine:
 
         preprocessor = Preprocessor(new_clauses, protected_vars=protected_vars)
         simplified_clauses = preprocessor.run()
-        self.stats.update(preprocessor.stats)
+        self._absorb(preprocessor.stats)
 
         return simplified_clauses, old_var_count, new_var_count, root_lit
 
@@ -56,7 +71,10 @@ class SMTEngine:
         for _ in range(new_var_count - current_sat_vars):
             self.sat.add_variable()
 
-        if [[]] in clauses or [] in clauses:
+        # An empty clause anywhere in the set is UNSAT outright. (A second test
+        # for ``[[]]`` stood here, asking whether a list-of-lists was an element
+        # of a list of clauses -- a shape that cannot occur, so it never fired.)
+        if [] in clauses:
             if not self.sat.add_clause([]):
                 return False
         else:
@@ -262,7 +280,7 @@ class SMTEngine:
 
     def get_stats(self) -> dict[str, int]:
         if self.sat:
-            self.stats.update(self.sat.stats)
+            self._absorb(self.sat.stats)
         if self.euf:
-            self.stats.update(self.euf.stats)
+            self._absorb(self.euf.stats)
         return self.stats
