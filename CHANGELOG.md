@@ -4,7 +4,11 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
-## [Unreleased]
+## [0.4.0]
+
+Three deferred items, each of which found something once it was looked at
+properly. The theme is the same in all three: a number nobody measured, a claim
+nobody checked, a rule nobody could see through.
 
 ### Changed
 
@@ -343,6 +347,7 @@ exists to get right has never once been taken outside a test.
 belief's footing and "was never exercised". It records nothing, and it is
 tested. The gap is the one stated above. See the 0.1.0 entry.)*
 
+[0.4.0]: https://github.com/noise01/endoxa/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/noise01/endoxa/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/noise01/endoxa/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/noise01/endoxa/compare/v0.1.1...v0.2.0
