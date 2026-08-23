@@ -31,9 +31,9 @@ class Proposition(BaseModel):
         confidence: Confidence carried by the proposition.
         source: Name of the process that raised it.
         session_id: The session the entry belongs to.
-        cycle_index: Monotonic index of the cognitive cycle within the OS instance
-            that produced this entry (resets across restarts; the persisted
-            total order is the store-assigned ``seq``, not this).
+        cycle_index: Monotonic index of the cognitive cycle within the run that
+            produced this entry (resets across restarts; the persisted total
+            order is the store-assigned ``seq``, not this).
         timestamp: Wall-clock time of the entry (epoch seconds).
         payload: The body, carried verbatim.
     """

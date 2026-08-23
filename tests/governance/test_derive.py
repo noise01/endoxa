@@ -8,7 +8,7 @@ LLM. Beyond the mapping itself, three things are guarded:
   is not a result, and these three are exactly the
   operations a run may go without ever performing.
 - **The retract/supersede discriminator**: the two differ only in whether the
-  write stated a confidence, which is the beliefs's own test for whether a flip is
+  write stated a confidence, which is the belief store's own test for whether a flip is
   counter-evidence (a host's belief store). Both shapes are fixed here.
 - **Both row shapes** produce the same series: a JSON string payload with a
   ``datetime``, and a plain dict payload with an epoch float.
@@ -25,7 +25,7 @@ _T0 = 1_700_000_000.0
 
 
 def _derivation(antecedent_id: str) -> list[dict[str, str]]:
-    """Build the beliefs's support record for a forward-derived consequent."""
+    """Build the belief store's support record for a forward-derived consequent."""
     return [{"kind": "derivation", "ref": antecedent_id}]
 
 

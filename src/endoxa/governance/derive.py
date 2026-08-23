@@ -26,11 +26,11 @@ remains free to configure one that keeps less. So the horizon keeps meaning
 exactly what it always meant -- the earliest row this derivation could read,
 which is not a claim of completeness.
 
-**Reading the host's event names.** This package may not import
-a host's own event definitions (this package has to travel to
-another host without the control plane), so the event type names live here as
-string constants. A host-side test pins them against the real classes'
-``__name__`` so a rename cannot silently empty the ledger.
+**Reading the host's event names.** This package may not import a host's own
+event definitions -- it has to work against a host it was never built for -- so
+the event type names live here as string constants. The host owes the other half
+of that bargain: a test on its side pinning these strings against whatever it
+actually emits, because a rename it never notices silently empties the ledger.
 
 Pure and dependency-free: the input is the raw row shape a host's event store
 returns.
@@ -60,17 +60,16 @@ MEMORY_BATCH_UPDATE_REQUEST = "MemoryBatchUpdateRequestEvent"
 #: read so a diagnostic run does not drag the whole audit log into memory.
 #:
 #: ``BeliefSupportRecordedEvent`` is the odd one: it yields **no operation at
-#: all**. A derivation reaching a belief already on the beliefs changes
+#: all**. A derivation reaching a belief already in the belief store changes
 #: no claim and no credence, so it is read for the support state it
 #: carries and for nothing else -- the first row type here that is state without
 #: being an operation.
 #:
-#: ``BeliefEvidenceBookedEvent`` is the write side breaking its own silence
-#: (increment 1). It maps onto exactly the same operations as
-#: ``BeliefEvidenceRecordedEvent``; the two are separate classes only because
-#: the beliefs subscribes to the latter, so re-using it would fold the evidence a
-#: second time. The distinction is a host wiring detail, and the derivation is
-#: deliberately blind to it.
+#: ``BeliefEvidenceBookedEvent`` is the write side breaking its own silence. It
+#: maps onto exactly the same operations as ``BeliefEvidenceRecordedEvent``; the
+#: two are separate classes only because the belief store subscribes to the
+#: latter, so re-using it would fold the evidence a second time. The distinction
+#: is a host wiring detail, and the derivation is deliberately blind to it.
 LEDGER_EVENT_TYPES: frozenset[str] = frozenset(
     {
         ATOM_ADDED,
@@ -83,7 +82,7 @@ LEDGER_EVENT_TYPES: frozenset[str] = frozenset(
     },
 )
 
-#: Property name the beliefs writes its support record under, and the keys of one
+#: Property name the belief store writes its support record under, and the keys of one
 #: record (a host's own support record). String constants for the
 #: same reason the event names are: this package cannot import a host.
 SUPPORTED_BY_KEY = "supported_by"
@@ -99,9 +98,9 @@ AXIOM_LOAD_CORRELATION_ID = "reasoning_axiom_load"
 #: Memory type of a learned or base rule row.
 _AXIOM_MEMORY_TYPE = "axiom"
 
-#: Default for the confidence below which a defeasible rule stops constraining
-#: (``settings.reasoning_rule_active_confidence_threshold``). Passed in by the
-#: host rather than imported, so this package carries no configuration dependency.
+#: Default for the confidence below which a defeasible rule stops constraining.
+#: A host that sets its own passes it in rather than this importing it, so the
+#: package carries no configuration dependency.
 DEFAULT_RULE_ACTIVE_THRESHOLD = 0.5
 
 
@@ -256,7 +255,7 @@ def _operations(
 def _support_refs(records: object) -> tuple[SupportRef, ...]:
     """Read a beliefs support record into typed references, skipping malformed entries.
 
-    Tolerant in the same measure as the beliefs's own reader
+    Tolerant in the same measure as the belief store's own reader
     (a host's own support record): support is read on paths that also run for
     beliefs that never had any, and an audit log is not a place where raising is
     useful. An unknown ``kind`` is dropped rather than guessed -- the whole point
@@ -278,9 +277,9 @@ def _support_refs(records: object) -> tuple[SupportRef, ...]:
 def _absorb_support(record: _Record, state: _FoldState) -> None:
     """Fold a ``BeliefSupportRecordedEvent`` into the running support state.
 
-    Appended, not replaced, and never duplicated -- mirroring the beliefs's
-    ``add_support``: a derivation that runs again over the same pair is
-    the same footing, not a second one.
+    Appended, not replaced, and never duplicated -- mirroring what the belief
+    store does when it records a support: a derivation that runs again over the
+    same pair is the same footing, not a second one.
     """
     node_id = str(record.payload.get("node_id", ""))
     added = _support_refs([record.payload.get("support")])
@@ -298,21 +297,21 @@ def _atom_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     - ``ask_grounding`` -> ``ground``. The ask-user closed loop is the only writer
       of confidence 1.0, so it is its own operation whatever else the
       write does.
-    - an unseen belief -> ``assert``. Birth defaults to true, matching ``add_atom``.
+    - an unseen belief -> ``assert``. Birth defaults to true, matching what a
+      write to the belief store does.
     - a flip -> ``retract`` or ``supersede``. **The discriminator is the one the
-      beliefs itself uses**: a host's belief store re-attributes the belief's
-      evidence to its new claim (``swap_evidence``) exactly when the
-      write carries no explicit ``confidence``. A revision flip writes the truth
-      value alone; recency supersession restates the confidence to say "the world
-      moved, the belief was not miscalibrated". So the
-      presence of that key is not a guessed proxy for the distinction -- it *is*
-      the host's own test for it.
+      host's own belief store uses**: it re-attributes the belief's evidence to
+      the claim the belief now makes exactly when the write carries no explicit
+      ``confidence``. A revision flip writes the truth value alone; recency
+      supersession restates the confidence to say "the world moved, the belief was
+      not miscalibrated". So the presence of that key is not a guessed proxy for
+      the distinction -- it *is* the host's own test for it.
     - anything else -> ``assert``, a restatement (the host publishes nothing at
       all for an idempotent re-assertion, so a row here always changed something).
 
     A written support record **replaces** what the belief is known to rest on,
-    because that is what the beliefs does: ``add_atom`` overwrites the property, so
-    a re-derivation names the antecedent it actually rode on this time.
+    because that is what the belief store does: the write overwrites the property,
+    so a re-derivation names the antecedent it actually rode on this time.
     Accumulation is the other writer's job (``_absorb_support``).
     """
     payload = record.payload
@@ -360,7 +359,7 @@ def _evidence_operations(record: _Record, state: _FoldState) -> list[LedgerOp]:
     """Map an evidence row onto ``confirm`` or ``refute``.
 
     Both evidence event types land here (see :data:`LEDGER_EVENT_TYPES`): which
-    class the host used says only whether the beliefs had already folded the
+    class the host used says only whether the belief store had already folded the
     evidence before publishing, which is not a governance distinction.
 
     No confidence is carried: the event says only which way the evidence points,
@@ -408,15 +407,14 @@ def _reason(value: object) -> EvidenceReason | None:
 def _hold_operations(record: _Record) -> list[LedgerOp]:
     """Map a ``ContradictionTieDetectedEvent`` onto one ``hold`` over the pair.
 
-    One operation, not two: a tie *is* a pair (``_TIE_ARITY``), and
-    counting it twice would make the ledger's own statistics say the system held
-    twice as often as it did. The view marks both members from ``partner``.
+    One operation, not two: a tie *is* a pair, and counting it twice would make
+    the ledger's own statistics say the system held twice as often as it did. The
+    view marks both members from ``partner``.
 
-    The detection event is what the ledger records, not the self-model's
-    ``RevisionTieAskEvent``: being unable to settle is the governance layer's
-    judgement, while deciding to *ask* about it is the host's dialogue policy
-    The two are kept apart deliberately: a ledger should not require its host to
-    have someone to talk to.
+    What the ledger records is the *detection*, not the host's decision to raise a
+    question about it. Being unable to settle is the governance layer's judgement;
+    deciding to ask is the host's dialogue policy. The two are kept apart
+    deliberately: a ledger should not require its host to have someone to talk to.
     """
     node_a = str(record.payload.get("node_a", ""))
     node_b = str(record.payload.get("node_b", ""))
@@ -476,10 +474,9 @@ def _rule_update_operations(record: _Record, *, rule_active_threshold: float) ->
     """Map an axiom confidence update onto ``retract`` (or a restating ``assert``).
 
     Soft retraction of a learned rule is a confidence driven below the active
-    threshold: the row is kept so the
-    rule can be re-learned, which is precisely the ledger's own stance -- the
-    entry does not disappear, it stops counting. An update that leaves the rule
-    active is a restatement, not a withdrawal.
+    threshold: the row is kept so the rule can be re-learned, which is precisely
+    the ledger's own stance -- the entry does not disappear, it stops counting. An
+    update that leaves the rule active is a restatement, not a withdrawal.
     """
     if record.payload.get("memory_type") != _AXIOM_MEMORY_TYPE:
         return []

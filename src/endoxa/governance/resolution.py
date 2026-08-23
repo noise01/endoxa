@@ -19,11 +19,11 @@ hand in each caller, it is a wiring that gets fixed once and stays broken
 everywhere else.
 
 **Scope: the belief tier.** Beliefs, learned rules and the ties between them --
-the ledger's primary object. Production additionally
-arbitrates *acquired links* (``find_link_culprits``), which
-the ledger deliberately keeps separate. So
-this surface does not reduce production to a single call, and it is not meant to:
-whether the two ledgers are ever shown as one view is a later judgement.
+the ledger's primary object. A host may additionally arbitrate *acquired links*
+(:func:`~endoxa.governance.revision.find_link_culprits`), which the ledger
+deliberately keeps separate. So this surface does not reduce a host's whole
+arbitration to a single call, and it is not meant to: whether the two ledgers are
+ever shown as one view is a later judgement.
 
 **Input is text.** Rules and hard constraints arrive as TPTP axiom strings and
 are parsed here. A host that had to build ``Expr`` objects would need the solver
@@ -55,14 +55,14 @@ if TYPE_CHECKING:
     from endoxa.solver import Expr
 
 #: ``actor`` stamped on the operations governance itself decides. A host that
-#: applies one writes it under whatever role its own beliefs uses (production's TMS
-#: writes ``agent``); what the ledger records here is that the decision came from
-#: the governance layer rather than from a speaker.
+#: applies one writes it under whatever role its own beliefs use; what the ledger
+#: records here is that the decision came from the governance layer rather than
+#: from a speaker.
 GOVERNANCE_ACTOR = "governance"
 
-#: Confidence a soft-retracted rule is driven to (``modules.reasoning._retract_rule``).
-#: The row is kept so the rule can be re-learned -- which is the ledger's own
-#: stance: the entry does not disappear, it stops counting.
+#: Confidence a soft retraction drives a rule to. The row is kept so the rule can
+#: be re-learned -- which is the ledger's own stance: the entry does not
+#: disappear, it stops counting.
 RETRACTED_RULE_CONFIDENCE = 0.0
 
 
@@ -207,7 +207,7 @@ def _resolve(
     *,
     max_rounds: int | None,
 ) -> GovernanceOutcome:
-    """Pick what to give up, exactly as ``_resolve_contradiction`` does.
+    """Pick what to give up.
 
     The order is the load-bearing part: the verified fact target first, then the
     defeasible rules that could be the culprit instead, then one choice between
@@ -315,10 +315,10 @@ def _supersede(
 ) -> LedgerOp | None:
     """Retire the older claim a newer functional one displaces.
 
-    Checked before consistency, as production does: functional exclusion says the
-    world moved, so the older belief was right when it was written and keeps its
-    confidence. That is what makes supersession the one path able to resolve two
-    inviolable beliefs -- the confidence policy never applies.
+    Checked before consistency: functional exclusion says the world moved, so the
+    older belief was right when it was written and keeps its confidence. That is
+    what makes supersession the one path able to resolve two inviolable beliefs --
+    the confidence policy never applies.
     """
     if escalated is None or not functional_predicates:
         return None
@@ -338,9 +338,9 @@ def _supersede(
 def _belief_map(beliefs: Sequence[Belief]) -> dict[str, dict[str, Any]]:
     """Build the node-id -> data mapping the governance logic reads.
 
-    The role goes under ``belief_context`` because that is the key the host's belief store
-    writes and the revision preference reads; ``role`` would
-    silently disable the hypothesis preference.
+    The role goes under ``belief_context`` because that is the key the host's
+    belief store writes and the revision preference reads; putting it under
+    ``role`` would silently disable the hypothesis preference.
     """
     return {
         belief.target: {

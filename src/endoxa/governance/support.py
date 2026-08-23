@@ -63,7 +63,7 @@ def support_verdict(states: Sequence[SupportState]) -> SupportVerdict:
 
     1. No supports at all -> ``unsupported``. Not "everything is gone": there was
        never anything to go. Reading an empty record as OUT would put every user
-       assertion on the beliefs in line for counter-evidence.
+       assertion in the belief store in line for counter-evidence.
     2. Any support alive -> ``in``. One live footing is enough; a belief does not
        weaken because a *second* derivation of it collapsed.
     3. Every support dead -> ``out``.

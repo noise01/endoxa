@@ -21,14 +21,14 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# The host's belief store stores an atom's role under ``belief_context``: ``add_atom``
-# takes a ``role`` argument and writes it to that key, and ``BeliefNode`` has no
-# ``role`` field at all. Reading ``role`` here therefore never matched anything,
-# which left the policy of retracting a conjecture before an assertion inert.
+# An atom's role is read from ``belief_context``, not from ``role``. A write takes
+# a role argument and stores it under that key; the stored belief has no ``role``
+# field at all. Reading ``role`` here matched nothing, which left the policy of
+# retracting a conjecture before an assertion inert without ever failing.
 _ROLE_KEY = "belief_context"
 _HYPOTHESIS = "hypothesis"
 
-# Confidence is a float that ``fold_evidence`` moves by Laplace smoothing, so
+# Confidence is a float that evidence folding moves by Laplace smoothing, so
 # exact equality would let a 1e-16 difference slip a genuine tie through and back
 # into arbitrary settlement. The tolerance is far below the 0.01-order spacing of
 # real values, so it never merges bands that are meant to be distinct.
@@ -50,11 +50,11 @@ def is_hypothesis(data: dict[str, Any]) -> bool:
     thing revision reaches for, ahead of an asserted belief of the very same
     confidence -- being offered as a guess is itself a reason to doubt it first.
 
-    Known limitation: ``belief_context`` is not birth-fixed. It sits
-    outside the provenance keys that are fixed at birth, so a belief rewritten by
-    ``_revise_fact`` (which passes ``role="agent"``) stops reading as a
-    hypothesis. Making the distinction permanent belongs with the first-class
-    provenance work (``backlog.md`` §6, "belief temporality" Stage 3).
+    Known limitation: ``belief_context`` is not fixed at birth. A host that
+    rewrites a belief under a different role -- revision writing it back as the
+    agent's own, say -- makes it stop reading as a hypothesis. Making the
+    distinction permanent means giving a belief a birth record that a later write
+    cannot overwrite, which is more than this predicate can do on its own.
     """
     return data.get(_ROLE_KEY) == _HYPOTHESIS
 

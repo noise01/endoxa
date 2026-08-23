@@ -59,9 +59,9 @@ def observations_from_rows(rows: Sequence[dict[str, Any]]) -> ReplayedObservatio
 
     Args:
         rows: Stored-event dicts (each with ``event_type`` and a JSON ``payload``
-            string), already in ascending timestamp order (as
-            :meth:`EventStore.get_by_types` returns them). Rows whose payload
-            cannot be parsed, or whose calibration field is absent, are skipped.
+            string), already in ascending timestamp order -- the order a host's
+            event store hands them back in. Rows whose payload cannot be parsed,
+            or whose calibration field is absent, are skipped.
 
     Returns:
         The 3 observation streams for windowed recomputation.

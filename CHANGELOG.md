@@ -4,6 +4,46 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## 0.1.1
+
+The extraction took the host's names out and did not always repair the sentences
+around them. This release is that repair, and a set of checks so the next removal
+cannot pass unnoticed.
+
+- **Prose the redaction broke.** A tie that "surfaced only as a warning log in a
+  warning log". A parenthetical emptied of its contents, leaving ``(..)``. A
+  clause ending "extended to revision selection by", with nothing after the "by".
+  Lines holding nothing but a full stop, where a citation used to end the
+  sentence. And a singular noun replaced by the plural "beliefs" in nineteen
+  places, so the docstrings read "the beliefs's own test" and "what the beliefs
+  does". Repaired throughout.
+- **References a reader could not follow.** Cross-references into modules that
+  exist only in the host (``.propagation.propagate``,
+  ``.memory._build_exclusion_links``, ``EventStore.get_by_types``); an ``:attr:``
+  still pointing at ``BeliefState.state`` after that field was renamed to
+  ``status``; section marks with no document named ("§2.10"); a decision record
+  cited without its number ("Three RFCs settled on holding both"); and
+  ``docs/backlog.md``, which is not in this repository. Each replaced by what it
+  was trying to say, or removed.
+- **"production" meant the host.** Nine places used the word for the system this
+  was extracted from. An outside reader takes it for "production environment",
+  which is a different claim entirely.
+- **Checks for all of the above, each with a positive control.** The vocabulary
+  rules already here ask whether a forbidden word survived the move; these ask
+  the harder question they cannot -- whether *removing* one left a readable
+  sentence. Added: the four scar shapes above, cross-references that resolve to
+  nothing in this package, ADR/RFC named without a number, private document
+  names, and the dotted form of a host module path (``modules.reasoning``), which
+  the existing rule missed because it was written for slashes.
+- **``py.typed``.** The ``Typing :: Typed`` classifier was a claim PEP 561 did
+  not back: with no marker file, a downstream type checker ignores every
+  annotation in here. Added, shipped in both the wheel and the sdist, and pinned
+  by a test that reads the classifier and fails if the marker is missing.
+- **The top-level ``__init__`` no longer promises a facade.** It described itself
+  as "the facade [the exports] will land in". None is coming, and that is the
+  decision rather than an unfinished one: import from the layer you mean, because
+  the layer a name belongs to is the most useful thing its address can tell you.
+
 ## 0.1.0
 
 No API change. What moved is the evidence for it: of the two thin places 0.0.1

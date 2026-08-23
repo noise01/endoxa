@@ -8,7 +8,7 @@ deciding between them*.
 contradiction is a real state, and a system can speak about it by asking, but it
 usually has no name in the state itself: a held tie is indistinguishable from two
 ordinary beliefs that happen to conflict. Here it is a value of
-:attr:`BeliefState.state`, and both sides carry it.
+:attr:`BeliefState.status`, and both sides carry it.
 
 **Releasing a hold is derived, never asserted.** A hold is not a lock. It is the
 name of "the preference cannot separate these two", so it ends when the
@@ -119,7 +119,7 @@ class ViewEquivalence:
     hide the interesting one.
 
     ``UNRESOLVED`` has no counterpart here, and that is not an omission: **the
-    beliefs cannot represent a hold**. Two beliefs the preference could not
+    belief store cannot represent a hold**. Two beliefs the preference could not
     separate sit on it as two ordinary beliefs, which is the gap the derived view
     closes. There is nothing on the other side for the ledger's status to be
     checked against, so it is pinned by a positive control rather than by this
@@ -138,23 +138,23 @@ class ViewEquivalence:
             put a target here, and they are not
             the same:
 
-            - **A regression in the recording path.** A booking the beliefs folded
+            - **A regression in the recording path.** A booking the belief store folded
               and did not record, or recorded and did not fold. Either way the
               write side and the ledger have come apart again.
             - **A restore that brought no tally back.** The ledger keeps a
-              belief's whole series, so a belief that returned to the beliefs
+              belief's whole series, so a belief that returned to the belief store
               without its counts reads as saying less than the audit log can
               account for. Paging carries the tally now, which is what
               made this column an invariant rather than a residual; what remains
               are the restores whose source has no tally to give -- an entry
               persists a proposition, not its evidence. Paging itself
               is still not a ledger operation: the fix was to
-              stop the beliefs forgetting, not to teach the ledger to forget.
+              stop the belief store forgetting, not to teach the ledger to forget.
 
             Note the test is a disagreement, not an inequality: the ledger
-            holding *more* than the beliefs lands here too, which is what makes
+            holding *more* than the belief store lands here too, which is what makes
             the second case visible at all.
-        missing_from_state: Targets the ledger knows that the beliefs no longer
+        missing_from_state: Targets the ledger knows that the belief store no longer
             has -- paged out to LTM or evicted. Excluded from the
             comparison rather than counted as breakage, and reported so the
             exclusion is never invisible.
@@ -234,12 +234,11 @@ def _apply(
     )
     if op.op == "retract" and op.target_kind == "atom" and op.confidence is None:
         # The flip re-attributes the belief's own evidence to the claim it now
-        # makes (``swap_evidence``). The two conditions mirror the
-        # beliefs's own: it swaps only for an atom, and only when the write stated
-        # no confidence -- a writer that states one is declaring a credence for
-        # the new claim, and a tally kept for the old one must not overrule it.
-        # A retracted *rule* has no tally at all: its retraction is the stated
-        # confidence itself (``_retract_rule``).
+        # makes. The two conditions mirror the belief store's own: it swaps only
+        # for an atom, and only when the write stated no confidence -- a writer
+        # that states one is declaring a credence for the new claim, and a tally
+        # kept for the old one must not overrule it. A retracted *rule* has no
+        # tally at all: its retraction is the stated confidence itself.
         return _swap_evidence(updated, prior_strength=prior_strength, ceiling=ceiling)
     if _is_grounded_reversal(state, op, first_seen=first_seen):
         return _swap_evidence(updated, prior_strength=prior_strength, ceiling=ceiling)
@@ -247,18 +246,18 @@ def _apply(
 
 
 def _is_grounded_reversal(state: BeliefState, op: LedgerOp, *, first_seen: bool) -> bool:
-    """Whether a ``ground`` also reversed a belief the beliefs already held.
+    """Whether a ``ground`` also reversed a belief the belief store already held.
 
     An ask-user answer wins the operation whatever else the write does
     (:mod:`~endoxa.governance.derive`), which is right --
     conferring confidence 1.0 is the thing that only this operation does. But the
-    write can *also* be a reversal, and then the beliefs re-attributes the belief's
+    write can *also* be a reversal, and then the belief store re-attributes the belief's
     evidence exactly as it does for a revision flip: its test is "the truth value
     changed and no confidence was stated", and it does not ask which operation
     the ledger will call it.
 
-    So this restates the beliefs's own test rather than keying off the operation
-    name. All three conditions are the beliefs's: an existing belief
+    So this restates the belief store's own test rather than keying off the operation
+    name. All three conditions are the belief store's: an existing belief
     (``truth_flipped`` is only set for a node already there), a changed truth
     value, and no stated confidence.
 
@@ -357,12 +356,11 @@ def _fold_evidence(
 
 
 def _swap_evidence(state: BeliefState, *, prior_strength: float, ceiling: float) -> BeliefState:
-    """Hand a flipped belief's evidence to the claim it now makes (mirroring ``swap_evidence``).
+    """Hand a flipped belief's evidence to the claim it now makes.
 
     The counts support *what the target currently claims*, not a fixed
     proposition, so the counter-evidence that motivated the flip reads as one
-    count for the new claim and the burned-in prior becomes its complement
-    .
+    count for the new claim and the burned-in prior becomes its complement.
     """
     confidence = _DEFAULT_CONFIDENCE if state.confidence is None else state.confidence
     if confidence >= 1.0:
@@ -434,12 +432,12 @@ def compare_to_state(
 
 
 def _held_evidence(node: Mapping[str, Any]) -> tuple[int, int]:
-    """Read the beliefs's for/against tally for one node."""
+    """Read the belief store's for/against tally for one node."""
     return (int(node.get("evidence_for", 0) or 0), int(node.get("evidence_against", 0) or 0))
 
 
 def _confidence_agrees(ledger: float | None, beliefs: object) -> bool:
-    """Whether the ledger's credence matches the beliefs's, both absences included."""
+    """Whether the ledger's credence matches the belief store's, both absences included."""
     if ledger is None or beliefs is None:
         return ledger is None and beliefs is None
     if not isinstance(beliefs, (int, float)) or isinstance(beliefs, bool):

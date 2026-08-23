@@ -17,7 +17,11 @@ The five packages are a DAG, listed here bottom-up:
   else, because a measure its subject can reach is a measure its subject can
   move.
 
-The exports arrive with the port; this module is the facade they will land in.
+Nothing is re-exported here, and that is the decision rather than an unfinished
+one: import from the package you mean. A top-level facade would give every name a
+second address, and the layer a name belongs to is the most useful thing its
+address can tell you -- ``from endoxa.governance import govern`` says where the
+judgement is made, where ``from endoxa import govern`` says only that it exists.
 """
 
 __all__: list[str] = []
