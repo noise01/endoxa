@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from endoxa.errors import InternalError
 from endoxa.solver.ast.expr import App, Const, Expr, Quantifier, Var
 from endoxa.solver.ast.sorts import BoolSort
 from endoxa.solver.sat.types import Lit, VarId
@@ -97,11 +98,11 @@ class TseitinEncoder:
                                 self.clauses.append([x_i ^ 1, pos_lit])
                         elif not isinstance(expr.sort, BoolSort):
                             msg = f"Cannot encode unknown AST node: {expr}"
-                            raise ValueError(msg)
+                            raise InternalError(msg)
                     case Quantifier():
                         pass
                     case _:
                         msg = f"Cannot encode unknown AST node: {expr}"
-                        raise ValueError(msg)
+                        raise InternalError(msg)
 
         return get_lit(root_expr)

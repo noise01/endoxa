@@ -13,6 +13,7 @@ code. The contract is enforced at the write now, and the type says so.
 
 import pytest
 
+from endoxa.errors import InternalError
 from endoxa.solver import INT_SORT, Eq, Function, Int, Not, Solver
 from endoxa.solver.sat.types import NULL_LITERAL
 from endoxa.solver.theories.euf import EUFSolver
@@ -22,7 +23,7 @@ def test_a_congruence_merge_without_its_terms_is_refused():
     euf = EUFSolver()
     a, b = euf.register_term(Int("a")), euf.register_term(Int("b"))
 
-    with pytest.raises(ValueError, match="must name the terms it rests on"):
+    with pytest.raises(InternalError, match="must name the terms it rests on"):
         euf._merge(a, b, NULL_LITERAL)
 
 

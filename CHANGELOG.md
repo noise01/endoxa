@@ -4,6 +4,54 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## [0.3.0]
+
+A caller who wants to handle a bad rule string can now name what gets raised.
+Before this the answer was `lark.exceptions.UnexpectedToken`.
+
+### Added
+
+- **`endoxa.errors`.** Every error this package raises on its own behalf derives
+  from `EndoxaError`, and each also derives from the built-in a caller would
+  reach for without knowing about the module — `RuleSyntaxError` is a
+  `ValueError`, `SortMismatchError` is a `TypeError`. Catching either works;
+  `EndoxaError` additionally tells you whose failure it was. `InternalError` is
+  kept separate from the rest on purpose: the others say a caller asked for
+  something that cannot be given, that one says the package reached a state it
+  does not believe is reachable.
+- **A test that reads every `raise` in the source** and fails on one outside the
+  hierarchy, plus one asserting that `lark` is imported in exactly one module. A
+  rule nothing checks holds until the next person who has not read it.
+
+### Fixed
+
+- **The grammar library reached through the public API.** `parse_fof` let its
+  parser's exceptions out, and `govern` parses the rules it is handed, so
+  handling a typo in an axiom meant importing `lark` to name the type — a
+  dependency this package documents as an internal detail, in an exception type,
+  which is API. Translated at the boundary now, with the parser's own diagnosis
+  (line and column) chained as `__cause__` for anyone who wants it.
+- **The TPTP grammar file was read at the locale's encoding.** No `encoding=`, so
+  on Windows that is a legacy code page — and the read happens at import, so a
+  file it could not decode would be an `ImportError` rather than a parse failure.
+
+### Changed
+
+- **CI runs on Windows and macOS as well as Linux.** The package is developed on
+  Windows and was tested only on Linux, which is the wrong way round.
+- **A job installs the oldest version each direct dependency allows** and runs
+  the suite against it. `lark>=1.3.1` had never meant that 1.3.1 works, only that
+  someone typed it. It does; now something says so.
+- **Actions are pinned to commits**, with Dependabot to move them. The publish
+  step is the one that matters: it holds the token that can upload to the index.
+- Three raise sites that were `ValueError` are now `SolverStateError`, which is a
+  `RuntimeError` — asking a solver for a model it has not computed is a state
+  error rather than a bad argument. Anything catching `ValueError` there needs
+  `EndoxaError` or `RuntimeError` instead.
+- **The DAG contract covers top-level modules, not only packages.** `errors.py`
+  is a module, and the completeness check would have let it out of the layer
+  rules without saying anything.
+
 ## [0.2.1]
 
 `py.typed` shipped in 0.1.1 and said the annotations in here are usable. For 26
@@ -213,6 +261,7 @@ exists to get right has never once been taken outside a test.
 belief's footing and "was never exercised". It records nothing, and it is
 tested. The gap is the one stated above. See the 0.1.0 entry.)*
 
+[0.3.0]: https://github.com/noise01/endoxa/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/noise01/endoxa/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/noise01/endoxa/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/noise01/endoxa/compare/v0.1.0...v0.1.1

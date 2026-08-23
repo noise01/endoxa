@@ -402,14 +402,32 @@ class TestTypingPromise:
         assert marker.is_file(), "the classifier claims a typing the marker does not grant"
 
 
-class TestContractCompleteness:
-    """Every package is named by the layers contract, or it escapes it in silence."""
+def _units_under_the_package() -> set[str]:
+    """Everything directly under ``endoxa``: subpackages, and modules beside them.
 
-    def test_the_contract_and_the_packages_agree(self):
-        declared = _contract_layers()
-        actual = {path.parent.name for path in (ROOT / "src" / "endoxa").glob("*/__init__.py")}
-        assert actual - declared == set(), f"packages outside the DAG contract: {sorted(actual - declared)}"
-        assert declared - actual == set(), f"the contract names a package that is gone: {sorted(declared - actual)}"
+    Both, because the layers contract constrains whatever it lists and leaves
+    everything else unconstrained. A rule that only counted packages would let a
+    new top-level *module* out of the DAG without anything saying so -- which is
+    what ``errors`` would have done.
+    """
+    root = ROOT / "src" / "endoxa"
+    packages = {path.parent.name for path in root.glob("*/__init__.py")}
+    modules = {path.stem for path in root.glob("*.py") if path.name != "__init__.py"}
+    return packages | modules
+
+
+class TestContractCompleteness:
+    """Everything under ``endoxa`` is named by the layers contract, or it escapes it."""
+
+    def test_the_contract_and_the_source_agree(self):
+        declared, actual = _contract_layers(), _units_under_the_package()
+        assert actual - declared == set(), f"outside the DAG contract: {sorted(actual - declared)}"
+        assert declared - actual == set(), f"the contract names something gone: {sorted(declared - actual)}"
+
+    def test_a_top_level_module_counts_too(self):
+        """``errors.py`` is a module, not a package, and is still inside the DAG."""
+        assert "errors" in _units_under_the_package()
+        assert "errors" in _contract_layers()
 
     def test_the_comparison_is_two_way(self):
         """A new package and a deleted one are different failures, and both must show."""

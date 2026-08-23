@@ -1,6 +1,6 @@
 [project]
 name = "endoxa"
-version = "0.2.1"
+version = "0.3.0"
 description = "Governed beliefs for LLM agents: an append-only ledger, SMT-checked consistency, defeasible revision, and calibration instruments."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -137,7 +137,9 @@ root_package = "endoxa"
 # The package is a DAG, and this states the whole of it: a layer may import the
 # layers below it and never the ones above. Reading it bottom-up --
 #
-#   syntax       parses an atom's shape; depends on nothing.
+#   errors       the exceptions this package raises; depends on nothing, so that
+#                every layer above may raise them.
+#   syntax       parses an atom's shape; depends on nothing else.
 #   solver       decides satisfiability; a frozen, self-contained SMT engine.
 #   governance   decides what to do about beliefs, using both.
 #   trace        records the series of thoughts; independent of the decision.
@@ -145,9 +147,10 @@ root_package = "endoxa"
 #                measure that its subject can reach is a measure its subject can
 #                move.
 #
-# A new top-level package is not in this list and would escape the rule in
-# silence, so the port owes a completeness test that every subpackage of `endoxa`
-# appears here -- an enumeration without a check is an enumeration that rots.
+# A new top-level package or module is not in this list and would escape the rule
+# in silence, so the port owes a completeness test that everything directly under
+# `endoxa` appears here -- an enumeration without a check is an enumeration that
+# rots.
 [[tool.importlinter.contracts]]
 name = "The package is a DAG"
 type = "layers"
@@ -157,4 +160,5 @@ layers = [
     "endoxa.governance",
     "endoxa.solver",
     "endoxa.syntax",
+    "endoxa.errors",
 ]

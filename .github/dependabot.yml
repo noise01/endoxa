@@ -1,0 +1,11 @@
+# Pinning an action to a commit is only half of it. A pin with nothing moving it
+# is a pin that ages into an unpatched dependency, and the one that matters most
+# here is the publish step: it holds the token that can upload to the index.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"

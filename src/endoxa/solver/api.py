@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Any, Literal
 
+from endoxa.errors import SortMismatchError
 from endoxa.solver.ast.context import AND_DECL, NOT_DECL, OR_DECL, global_ctx
 from endoxa.solver.ast.expr import Expr, FuncDecl
 from endoxa.solver.ast.sorts import BOOL_SORT, INT_SORT, Sort
@@ -71,7 +72,7 @@ def Implies(p: Expr, q: Expr) -> Expr:  # noqa: N802
 def Eq(a: Expr, b: Expr) -> Expr:  # noqa: N802
     if a.sort != b.sort:
         msg = f"Sort mismatch in Eq: cannot compare '{a.sort}' and '{b.sort}'"
-        raise TypeError(msg)
+        raise SortMismatchError(msg)
 
     eq_decl = FuncDecl("Eq", (a.sort, b.sort), BOOL_SORT)
     return global_ctx.mk_app(eq_decl, a, b)

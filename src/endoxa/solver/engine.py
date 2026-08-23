@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Literal, cast
 
+from endoxa.errors import SolverStateError
 from endoxa.solver.ast.context import NOT_DECL, OR_DECL, global_ctx
 from endoxa.solver.ast.expr import App, Expr, Quantifier, Var
 from endoxa.solver.ast.sorts import BOOL_SORT, BoolSort
@@ -251,7 +252,7 @@ class SMTEngine:
     def pop(self, num_levels: int = 1) -> None:
         if num_levels > len(self.scopes):
             msg = "Cannot pop beyond level 0"
-            raise ValueError(msg)
+            raise SolverStateError(msg)
 
         for _ in range(num_levels):
             self.scopes.pop()
@@ -264,11 +265,11 @@ class SMTEngine:
     def get_model(self) -> dict[Expr, int]:
         if not self.sat or not self.encoder:
             msg = "Engine must be run before requesting a model."
-            raise RuntimeError(msg)
+            raise SolverStateError(msg)
         sat_model = self.sat.model
         if not sat_model:
             msg = "Model is not available (UNSAT)."
-            raise ValueError(msg)
+            raise SolverStateError(msg)
 
         return {expr: sat_model[var] for var, expr in enumerate(self.encoder.var_to_expr) if var in sat_model}
 
