@@ -50,6 +50,7 @@ dev = [
     "pytest>=9.0.3",
     # The trace store is an async port, so its contract test needs an async runner.
     "pytest-asyncio>=1.3.0",
+    "pyyaml>=6.0",
     "ruff>=0.15.17",
     # The solver's correctness is asserted against Z3 by differential tests, not
     # by its own test suite alone.
