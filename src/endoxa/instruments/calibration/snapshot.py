@@ -7,12 +7,10 @@ populates it lives in a host.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from endoxa.instruments.calibration.ask_policy import AskOutcomeCounts
-    from endoxa.instruments.calibration.competence import BrierAccumulator
-    from endoxa.instruments.calibration.knowledge import KnowledgeCalibrationStats
+from endoxa.instruments.calibration.ask_policy import AskOutcomeCounts
+from endoxa.instruments.calibration.competence import BrierAccumulator
+from endoxa.instruments.calibration.knowledge import KnowledgeCalibrationStats
 
 
 @dataclass(slots=True, frozen=True)

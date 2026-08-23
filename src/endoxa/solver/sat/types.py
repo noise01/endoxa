@@ -1,8 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from typing import Any
 
 type VarId = int
 type Lit = int

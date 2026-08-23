@@ -9,10 +9,9 @@ responsibility, assigned in append order -- so the port takes a bare
 :class:`Proposition` and returns nothing.
 """
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
-if TYPE_CHECKING:
-    from endoxa.trace.models import Proposition
+from endoxa.trace.models import Proposition
 
 
 class TraceStore(Protocol):

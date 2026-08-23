@@ -37,19 +37,15 @@ uses, so a synthesised clause's atom expressions are identical to the assumption
 expressions and the solver correlates them.
 """
 
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field, replace
 from itertools import combinations
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from endoxa.governance.revision.facts import parse_fact_to_expr
-from endoxa.solver import And, Implies, Not
+from endoxa.solver import And, Expr, Implies, Not
 from endoxa.syntax import parse_atom
 from endoxa.syntax.atoms import FUNCTIONAL_MIN_ARITY
-
-if TYPE_CHECKING:
-    from collections.abc import Collection, Mapping
-
-    from endoxa.solver import Expr
 
 
 def _is_true(data: dict[str, Any]) -> bool:

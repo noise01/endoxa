@@ -16,10 +16,8 @@ only the 1.0 case to generalise from.
 Pure and basis-independent (governance tier): stdlib only.
 """
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
+from collections.abc import Iterator
+from typing import Any
 
 # An atom's role is read from ``belief_context``, not from ``role``. A write takes
 # a role argument and stores it under that key; the stored belief has no ``role``

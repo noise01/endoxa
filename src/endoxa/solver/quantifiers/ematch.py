@@ -1,11 +1,7 @@
-from typing import TYPE_CHECKING
-
 from endoxa.solver.ast.context import global_ctx
 from endoxa.solver.ast.expr import App, BoundVar, Const, Expr, Quantifier
 from endoxa.solver.ast.utils import substitute
-
-if TYPE_CHECKING:
-    from endoxa.solver.theories.euf import EUFSolver
+from endoxa.solver.theories.euf import EUFSolver
 
 
 def _contains_bound(e: Expr, bound_vars: set[BoundVar]) -> bool:

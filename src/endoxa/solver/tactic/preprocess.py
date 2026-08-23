@@ -1,7 +1,6 @@
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
 
-if TYPE_CHECKING:
-    from endoxa.solver.sat.types import Lit, VarId
+from endoxa.solver.sat.types import Lit, VarId
 
 
 class PreprocessorStats(TypedDict):

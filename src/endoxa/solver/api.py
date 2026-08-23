@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Sequence
+from typing import Any, Literal
 
 from endoxa.solver.ast.context import AND_DECL, NOT_DECL, OR_DECL, global_ctx
-from endoxa.solver.ast.expr import FuncDecl
+from endoxa.solver.ast.expr import Expr, FuncDecl
 from endoxa.solver.ast.sorts import BOOL_SORT, INT_SORT, Sort
 from endoxa.solver.engine import SMTEngine
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from endoxa.solver.ast.expr import Expr
 
 
 class Solver:

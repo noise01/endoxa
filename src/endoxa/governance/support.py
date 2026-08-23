@@ -21,10 +21,8 @@ read it.
 Pure: stdlib typing only, no state, no I/O.
 """
 
-from typing import TYPE_CHECKING, Literal
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from collections.abc import Sequence
+from typing import Literal
 
 #: What became of one support.
 #:

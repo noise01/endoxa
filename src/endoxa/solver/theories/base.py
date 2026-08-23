@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from endoxa.solver.sat.types import Clause, Lit
+from endoxa.solver.sat.types import Clause, Lit
 
 
 class TheorySolver(ABC):

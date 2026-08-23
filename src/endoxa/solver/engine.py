@@ -1,17 +1,14 @@
-from typing import TYPE_CHECKING, Literal, cast
+from collections.abc import Mapping
+from typing import Literal, cast
 
 from endoxa.solver.ast.context import NOT_DECL, OR_DECL, global_ctx
 from endoxa.solver.ast.expr import App, Expr, Quantifier, Var
 from endoxa.solver.ast.sorts import BOOL_SORT, BoolSort
 from endoxa.solver.quantifiers import EMatcher
 from endoxa.solver.sat.solver import SATSolver
+from endoxa.solver.sat.types import Callbacks, Lit
 from endoxa.solver.tactic import Preprocessor, Skolemizer, TseitinEncoder
 from endoxa.solver.theories import EUFSolver
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from endoxa.solver.sat.types import Callbacks, Lit
 
 
 class SMTEngine:

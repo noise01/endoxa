@@ -23,14 +23,12 @@ Pure: stdlib and this package's own revision logic only.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from endoxa.governance.revision.engine import _fact_argument_terms, check_consistency
 from endoxa.governance.revision.links import PredicateConstraints, predicate_clauses
 from endoxa.governance.revision.preference import is_unsettleable_pair
-
-if TYPE_CHECKING:
-    from endoxa.solver import Expr
+from endoxa.solver import Expr
 
 # A tie is a *pair*: exactly two held beliefs named by the conflict. Three or
 # more (a functional-exclusion pile-up) cannot be settled by one

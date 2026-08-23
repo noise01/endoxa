@@ -1,10 +1,6 @@
 import re
-from typing import TYPE_CHECKING
 
-from endoxa.solver import BOOL_SORT, FuncDecl, USort, global_ctx
-
-if TYPE_CHECKING:
-    from endoxa.solver import Expr
+from endoxa.solver import BOOL_SORT, Expr, FuncDecl, USort, global_ctx
 
 # Single uninterpreted sort shared by all ground terms in the belief base.
 U = USort("U")
