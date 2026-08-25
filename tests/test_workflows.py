@@ -23,9 +23,10 @@ ROOT = Path(__file__).resolve().parents[1]
 #: it, and which this does not match.
 LITERAL_NEWLINE = re.compile(r"\\n")
 
-#: The workflows that are ours to keep working. ``openwiki-update.yml`` is
-#: rewritten by the tool that generates it, so holding it to this would be a fight
-#: with the generator rather than a check on us.
+#: The workflows that are ours to keep working, which is currently all of them.
+#: Named rather than globbed: a generated workflow does not belong here, since
+#: holding a generator's output to this would be a fight with the generator
+#: rather than a check on us, and a glob could not tell the two apart.
 WORKFLOWS = ["ci.yml", "release.yml"]
 
 
