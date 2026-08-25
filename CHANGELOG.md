@@ -4,6 +4,30 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## [Unreleased]
+
+### Added
+
+- **A "What this is not" section in the README.** Five things this is not: a
+  reasoner, a knowledge base, a general-purpose SMT solver, a new idea, or
+  measured against the alternative. The last is the point of the section — there
+  is no benchmark here and no claim that an agent using this is better at
+  anything than one that is not, and saying so plainly is more use to a reader
+  than saying nothing. The other four answer the questions a reader arrives with,
+  in the place they arrive.
+- **The boundary rules now read the documents as well as the source.** Every rule
+  in `tests/test_package_boundary.py` was written against `.py` files and swept
+  `src/` and `tests/`, which left every markdown file in the project outside all
+  of them — including the README, the most-read file here and the one where a
+  name from the private repository would do the most damage. Nothing was wrong in
+  the 25 documents when they were brought in; the point is that nothing could
+  have said so, and all five checks would have stayed green. The sweep globs
+  rather than lists, so a new documentation directory cannot escape it quietly.
+  This log is exempt from the rules about pointers, and only those: an entry
+  about a change that forbade a form has to be able to show the form, and a
+  release note sends nobody after a document. A test asserts that the exemption
+  is still load-bearing, so it goes when the reason for it goes.
+
 ## [0.4.0]
 
 Three deferred items, each of which found something once it was looked at
