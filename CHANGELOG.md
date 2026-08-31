@@ -4,6 +4,116 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0 a releas
 may move the public API: what it looks like now is where the extraction landed,
 not a promise.
 
+## [Unreleased]
+
+### Added
+
+- **A "What this is not" section in the README.** Five things this is not: a
+  reasoner, a knowledge base, a general-purpose SMT solver, a new idea, or
+  measured against the alternative. The last is the point of the section — there
+  is no benchmark here and no claim that an agent using this is better at
+  anything than one that is not, and saying so plainly is more use to a reader
+  than saying nothing. The other four answer the questions a reader arrives with,
+  in the place they arrive.
+- **The boundary rules now read the documents as well as the source.** Every rule
+  in `tests/test_package_boundary.py` was written against `.py` files and swept
+  `src/` and `tests/`, which left every markdown file in the project outside all
+  of them — including the README, the most-read file here and the one where a
+  name from the private repository would do the most damage. Nothing was wrong in
+  the 25 documents when they were brought in; the point is that nothing could
+  have said so, and all five checks would have stayed green. The sweep globs
+  rather than lists, so a new documentation directory cannot escape it quietly.
+  This log is exempt from the rules about pointers, and only those: an entry
+  about a change that forbade a form has to be able to show the form, and a
+  release note sends nobody after a document. A test asserts that the exemption
+  is still load-bearing, so it goes when the reason for it goes.
+
+## [0.4.0]
+
+Three deferred items, each of which found something once it was looked at
+properly. The theme is the same in all three: a number nobody measured, a claim
+nobody checked, a rule nobody could see through.
+
+### Changed
+
+- **Importing this package no longer builds a parser.** Compiling the TPTP
+  grammar and loading the library that compiles it cost about seventy
+  milliseconds, and every caller paid them at import — including one that only
+  reads a ledger, and one that only counts Brier scores, neither of which parses
+  anything. The grammar moved to `solver.parsers._grammar`, loaded on the first
+  parse and held from then on.
+
+  | import | before | after |
+  | --- | ---: | ---: |
+  | `endoxa.solver` | 101 ms | 33 ms |
+  | `endoxa.governance` | 111 ms | 48 ms |
+  | `endoxa.instruments.calibration` | 121 ms | 56 ms |
+
+  A first parse costs 67 ms once; every parse after it is unchanged. Nothing in
+  the public API moved — `parse_fof` and `to_tptp` are still
+  `endoxa.solver`'s. What did move is the module-level `parser` object inside
+  `solver.parsers.tptp`, which was never exported and which that package's own
+  docstring tells callers not to reach for.
+
+- **A test holds it there.** One top-level `from lark import ...` put back
+  anywhere undoes the whole thing, silently, with every other test still
+  passing. Each check runs in a fresh interpreter and asserts the library is
+  absent from `sys.modules`, with a control asserting it is present after a
+  parse — otherwise the check proves nothing.
+
+- **Coverage is measured in CI, with a floor.** Branch coverage, 86.6–87.4%
+  across runs, held at 85 as a ratchet — a drop worth noticing becomes something
+  someone decided rather than something that happened. The floor sits below the
+  low end rather than below the mean, because part of the suite is a random sweep
+  and the number moves; a floor set at the figure a run reports fails on an
+  unlucky one. Branch rather than line: a line that ran is not a line whose
+  alternatives ran, and the difference here is two points.
+
+  Measuring it found something the aggregate had been hiding. With the grammar
+  moved out, what remained of `solver.parsers.tptp` — the write-out half, all of
+  it public — measured **16%**: `to_tptp` is exported from `endoxa.solver` and no
+  test had ever called it. Writing those tests found two more things:
+
+  - **`to_tptp` could produce text `parse_fof` refuses.** It writes `$true` and
+    `$false` for the Boolean constants, and the grammar knew neither word. The
+    two are exported side by side; they agree now, and a round-trip test over
+    sixteen formulas says so.
+  - **A branch in the writer that could only ever be wrong.** It special-cased a
+    declaration named `Implies`, but `Implies` builds `Or(Not(p), q)` and no
+    declaration of that name is ever created — so the branch could only fire on a
+    caller's own predicate called `Implies`, and would have written it out as a
+    connective. Removed, with a test pinning that such a predicate stays one.
+
+- **The Z3 differential covers equality now, not only propositions.** The README
+  said the solver's correctness is "asserted differentially against Z3". The
+  harness's own docstring was precise — "deliberately restricted to
+  quantifier-free propositional logic" — but the summary a reader sees was not,
+  and the congruence closure underneath, which is most of what makes this an SMT
+  solver rather than a SAT solver, was outside it.
+
+  Added a second fragment: constants and uninterpreted functions over one
+  uninterpreted sort, compared with `=`. Chosen on the same principle as the
+  first — both solvers are complete on it, so a disagreement is a bug rather than
+  one of them giving up first. `theories/euf.py` goes from 90% to **98%**.
+
+  The generator needed a shove to be worth anything. Random equalities are
+  satisfiable 295 times in 300, so a batch of them exercises the easy half of the
+  solver and calls it coverage; it now mixes in shapes that need congruence and
+  transitivity, and a test asserts the batch stays between 20% and 80%
+  unsatisfiable rather than merely containing one of each.
+
+  **Quantifiers stay outside, and the README now says so.** Instantiation here is
+  anytime and answers `UNKNOWN` when its budget runs out — a correct answer, and
+  not one a verdict comparison can score.
+
+- **The former package name was still in the differential harness.** Ten
+  occurrences, in identifiers: `render_doxa`, `_doxa_verdict`,
+  `test_doxa_solver_agrees_with_z3`. A check had reported the tree clean, because
+  it looked for the name with a word boundary on each side — and an underscore is
+  a word character, so `doxa` matches none of those. Renamed, and the
+  boundary test now looks for it with a rule that can see an identifier, with a
+  control demonstrating what the obvious rule misses.
+
 ## [0.3.0]
 
 A caller who wants to handle a bad rule string can now name what gets raised.
@@ -261,6 +371,7 @@ exists to get right has never once been taken outside a test.
 belief's footing and "was never exercised". It records nothing, and it is
 tested. The gap is the one stated above. See the 0.1.0 entry.)*
 
+[0.4.0]: https://github.com/noise01/endoxa/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/noise01/endoxa/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/noise01/endoxa/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/noise01/endoxa/compare/v0.1.1...v0.2.0

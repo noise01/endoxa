@@ -19,9 +19,12 @@ from typing import TYPE_CHECKING, Literal
 
 import z3
 
-from endoxa.solver import And, Bool, Implies, Not, Or, Solver
+from endoxa.solver import And, Bool, Eq, Function, Implies, Not, Or, Solver, USort
 from tests.differential.formula import And as NAnd
-from tests.differential.formula import Formula, format_formula
+from tests.differential.formula import Apply as NApply
+from tests.differential.formula import Atom as NAtom
+from tests.differential.formula import Equal as NEqual
+from tests.differential.formula import Formula, Term, format_formula
 from tests.differential.formula import Implies as NImplies
 from tests.differential.formula import Not as NNot
 from tests.differential.formula import Or as NOr
@@ -32,21 +35,67 @@ if TYPE_CHECKING:
 
 Verdict = Literal["SAT", "UNSAT", "UNKNOWN"]
 
+#: The one uninterpreted sort the EUF fragment is written over, on each side. A
+#: declared sort rather than a built-in one: an Int would give Z3 a domain it knows
+#: is infinite and knows arithmetic about, and the point is to ask both solvers the
+#: same question about equality alone.
+_U = USort("U")
+_Z3_U = z3.DeclareSort("U")
 
-def render_doxa(node: Formula) -> Expr:
+
+def _declaration_key(fn: str, arity: int) -> str:
+    """Name a function by its arity as well.
+
+    The generator reuses a name at more than one arity, and both solvers treat
+    those as different declarations. Keying on the pair here is what keeps the two
+    renderings in step -- otherwise one side would silently merge what the other
+    kept apart, and the disagreement would be the harness's, not the solver's.
+    """
+    return f"{fn}/{arity}"
+
+
+def render_endoxa_term(node: Term) -> Expr:
+    """Render a neutral term AST into a endoxa-solver expression."""
+    match node:
+        case NAtom(name):
+            return Function(name, _U)()
+        case NApply(fn, args):
+            rendered = [render_endoxa_term(a) for a in args]
+            decl = Function(_declaration_key(fn, len(rendered)), *([_U] * (len(rendered) + 1)))
+            return decl(*rendered)
+    msg = f"Unknown term node: {node!r}"
+    raise TypeError(msg)
+
+
+def render_endoxa(node: Formula) -> Expr:
     """Render a neutral formula AST into a endoxa-solver expression."""
     match node:
         case NVar(name):
             return Bool(name)
+        case NEqual(left, right):
+            return Eq(render_endoxa_term(left), render_endoxa_term(right))
         case NNot(child):
-            return Not(render_doxa(child))
+            return Not(render_endoxa(child))
         case NImplies(left, right):
-            return Implies(render_doxa(left), render_doxa(right))
+            return Implies(render_endoxa(left), render_endoxa(right))
         case NAnd(children):
-            return And(*(render_doxa(c) for c in children))
+            return And(*(render_endoxa(c) for c in children))
         case NOr(children):
-            return Or(*(render_doxa(c) for c in children))
+            return Or(*(render_endoxa(c) for c in children))
     msg = f"Unknown formula node: {node!r}"
+    raise TypeError(msg)
+
+
+def render_z3_term(node: Term) -> z3.ExprRef:
+    """Render the same neutral term AST into a Z3 expression."""
+    match node:
+        case NAtom(name):
+            return z3.Const(name, _Z3_U)
+        case NApply(fn, args):
+            rendered = [render_z3_term(a) for a in args]
+            decl = z3.Function(_declaration_key(fn, len(rendered)), *([_Z3_U] * (len(rendered) + 1)))
+            return decl(*rendered)
+    msg = f"Unknown term node: {node!r}"
     raise TypeError(msg)
 
 
@@ -55,6 +104,8 @@ def render_z3(node: Formula) -> z3.BoolRef:
     match node:
         case NVar(name):
             return z3.Bool(name)
+        case NEqual(left, right):
+            return render_z3_term(left) == render_z3_term(right)
         case NNot(child):
             return z3.Not(render_z3(child))
         case NImplies(left, right):
@@ -78,9 +129,9 @@ def _z3_verdict(node: Formula) -> Verdict:
     return "UNKNOWN"
 
 
-def _doxa_verdict(node: Formula) -> Verdict:
+def _endoxa_verdict(node: Formula) -> Verdict:
     solver = Solver()
-    solver.add(render_doxa(node))
+    solver.add(render_endoxa(node))
     return solver.check()
 
 
@@ -100,7 +151,7 @@ def differential_check(node: Formula) -> DifferentialResult:
     ``agree`` is True only when both verdicts are decisive (SAT/UNSAT) and equal.
     A endoxa UNKNOWN on this complete fragment counts as a disagreement.
     """
-    endoxa = _doxa_verdict(node)
+    endoxa = _endoxa_verdict(node)
     z3_result = _z3_verdict(node)
     agree = endoxa == z3_result and endoxa in ("SAT", "UNSAT")
     return DifferentialResult(

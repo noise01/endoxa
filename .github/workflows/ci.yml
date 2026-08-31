@@ -34,8 +34,11 @@ jobs:
       - name: Types
         run: uv run mypy
 
+      # Measured here only. The platform jobs run the same suite and would report
+      # the same number; the floor job runs it at the oldest dependencies, where a
+      # difference would say something about those rather than about the tests.
       - name: Test
-        run: uv run pytest
+        run: uv run pytest --cov=endoxa
 
   # This package is developed on Windows and was tested only on Linux, which is
   # the wrong way round: the platform its author would hit a break on was the one

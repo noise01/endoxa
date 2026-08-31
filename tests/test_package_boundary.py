@@ -66,6 +66,14 @@ CITATION = re.compile(r"\b(?:ADR|RFC)s?\b")
 #: Documents that exist only in the repository this was extracted from.
 PRIVATE_DOC = re.compile(r"\bbacklog\.md\b|\bdocs/")
 
+#: The name this package was published under for one release, before the index
+#: refused it. Deliberately **not** written with ``\b``: an underscore is a word
+#: character, so ``\bdoxa\b`` matches neither ``render_doxa`` nor ``_doxa_verdict``
+#: -- which is how ten of them sat in the differential harness through a check that
+#: reported the tree clean. A rename hides in identifiers, which is exactly where a
+#: word-boundary rule cannot look.
+FORMER_NAME = re.compile(r"(?<![a-z])doxa(?![a-z])")
+
 #: What a redaction leaves behind when the name goes and the sentence does not get
 #: rewritten. Each of these was found in this package, not imagined for the test.
 SCARS = {
@@ -80,7 +88,7 @@ SCARS = {
 #: possessive rule fires on ``the class's`` and becomes a rule people delete rather
 #: than obey.
 SINGULARS_ENDING_IN_S = frozenset(
-    {"access", "basis", "class", "process", "socrates", "status", "success"},
+    {"access", "basis", "class", "harness", "process", "socrates", "status", "success", "witness"},
 )
 
 CJK = re.compile(r"[　-ヿ一-鿿]")
@@ -105,6 +113,50 @@ def _real_files() -> Corpus:
         for path in paths
         if path.name != Path(__file__).name
     ]
+
+
+#: Directories holding something other than this repository's own writing --
+#: installed packages, build output, tool caches. Without this the sweep below
+#: reads every markdown file every dependency ever shipped and fails on someone
+#: else's prose.
+NOT_OURS = frozenset(
+    {".git", ".venv", "venv", "dist", "build", "node_modules", ".mypy_cache", ".pytest_cache", ".ruff_cache"},
+)
+
+#: The one document exempt from the pointer rules. A log of a change that forbade
+#: a form has to be able to show the form: the entry for 0.1.1 quotes "§2.10" and
+#: "Three RFCs settled on holding both" because those are the strings the rule was
+#: built to catch, and the entry for 0.2.1 quotes the identifiers a word-boundary
+#: pattern could not see. Mention is not use, and nobody reading release notes is
+#: being sent after a document. The vocabulary rules still apply to it -- no
+#: version of this project has release notes that need the host's name.
+POINTER_EXEMPT = "CHANGELOG.md"
+
+#: A fenced block is code, and the typographic rules are about prose. Blanked
+#: rather than dropped so a reported line number is the line in the file.
+FENCED = re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL)
+
+#: Markdown's inline code, which the source rules meet as double backticks.
+MD_CODE_SPAN = re.compile(r"`[^`]*`")
+
+
+def _markdown_files(*, changelog: bool = True) -> Corpus:
+    """Every markdown document this repository publishes, as ``(name, text)``.
+
+    Swept rather than listed: a listed set is one a new documentation directory
+    escapes silently, which is the failure this whole function exists to undo.
+    ``_real_files`` collects ``.py`` only, so until this was written every
+    markdown file in the project sat outside every rule in this module --
+    including ``README.md``, the most-read file here and the one where a host
+    name would do the most damage. Nothing was wrong in them when they were
+    brought in. The point is that nothing could have said so.
+    """
+    paths = sorted(
+        path
+        for path in ROOT.rglob("*.md")
+        if not NOT_OURS & set(path.relative_to(ROOT).parts) and (changelog or path.name != POINTER_EXEMPT)
+    )
+    return [(path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8")) for path in paths]
 
 
 def _word_offences(corpus: Corpus) -> list[str]:
@@ -161,9 +213,33 @@ def _prose_lines(corpus: Corpus) -> list[tuple[str, int, str]]:
     ]
 
 
+def _markdown_prose_lines(corpus: Corpus) -> list[tuple[str, int, str]]:
+    """Every line of a markdown document, with its code blanked out.
+
+    The counterpart of :func:`_prose_lines`, which reaches prose by tokenising
+    Python. A markdown file is prose all the way down apart from its code, so the
+    work here is the reverse: take the whole file and take the code out of it.
+    """
+    lines: list[tuple[str, int, str]] = []
+    for name, text in corpus:
+        blanked = FENCED.sub(lambda block: "\n" * block.group().count("\n"), text)
+        lines.extend((name, number, line) for number, line in enumerate(blanked.splitlines(), 1))
+    return lines
+
+
 def _scar_offences(corpus: Corpus) -> list[str]:
+    return _scars_in(_prose_lines(corpus))
+
+
+def _markdown_scar_offences(corpus: Corpus) -> list[str]:
+    return _scars_in(
+        [(name, line, MD_CODE_SPAN.sub("CODE", text)) for name, line, text in _markdown_prose_lines(corpus)]
+    )
+
+
+def _scars_in(lines: list[tuple[str, int, str]]) -> list[str]:
     offences = []
-    for name, line, text in _prose_lines(corpus):
+    for name, line, text in lines:
         stripped = CODE_SPAN.sub("CODE", text)
         for why, pattern in SCARS.items():
             found = pattern.search(stripped)
@@ -314,6 +390,27 @@ class TestVocabulary:
         """Dropping the number does not make the reference followable, only vaguer."""
         assert _line_offences([("planted.py", "# Three RFCs settled on holding both")], CITATION)
 
+    def test_the_former_name_is_gone(self):
+        offences = _line_offences(_real_files(), FORMER_NAME)
+        assert not offences, "the name this was published under before:\n" + "\n".join(offences)
+
+    def test_a_planted_former_name_is_caught(self):
+        """Including the two shapes a word-boundary rule cannot see."""
+        assert _line_offences([("planted.py", "def render_doxa(node):")], FORMER_NAME)
+        assert _line_offences([("planted.py", "x = _doxa_verdict(node)")], FORMER_NAME)
+        assert _line_offences([("planted.py", "# see doxa for why")], FORMER_NAME)
+
+    def test_a_word_boundary_rule_would_have_missed_them(self):
+        """Why this pattern is written the way it is, rather than the obvious way."""
+        obvious = re.compile(r"\bdoxa\b")
+        assert not obvious.search("def render_doxa(node):")
+        assert not obvious.search("x = _doxa_verdict(node)")
+
+    def test_the_current_name_is_not_caught(self):
+        """``endoxa`` ends in the old name and must not trip the rule."""
+        assert not _line_offences([("planted.py", "import endoxa.governance")], FORMER_NAME)
+        assert not _line_offences([("planted.py", "x = render_endoxa(node)")], FORMER_NAME)
+
     def test_no_private_document_is_named(self):
         offences = _prose_offences(_real_files(), PRIVATE_DOC)
         assert not offences, "a document only the host repository holds:\n" + "\n".join(offences)
@@ -434,3 +531,80 @@ class TestContractCompleteness:
         declared, actual = {"solver", "syntax"}, {"solver", "syntax", "sneaky"}
         assert actual - declared == {"sneaky"}
         assert {"solver", "syntax", "gone"} - actual == {"gone"}
+
+
+class TestPublishedDocuments:
+    """The rules above, applied to the markdown a reader actually arrives at.
+
+    Every one of them was written against source and pointed only at source,
+    which left the front page of the project as the one file no rule could see.
+    A host name in ``README.md`` would have shipped to the index with all five
+    checks green.
+    """
+
+    def test_the_sweep_reaches_the_front_page(self):
+        """A glob matching nothing would pass every other test in this class."""
+        names = {name for name, _ in _markdown_files()}
+        assert "README.md" in names
+        assert "examples/README.md" in names
+        assert POINTER_EXEMPT in names
+        assert not [name for name in names if NOT_OURS & set(Path(name).parts)]
+
+    def test_no_forbidden_word_appears(self):
+        offences = _word_offences(_markdown_files())
+        assert not offences, "host vocabulary reached the documents:\n" + "\n".join(offences)
+
+    def test_no_document_is_written_in_another_language(self):
+        offences = _line_offences(_markdown_files(), CJK)
+        assert not offences, "a document a reader of this package cannot read:\n" + "\n".join(offences)
+
+    def test_no_host_path_is_referenced(self):
+        offences = _line_offences(_markdown_files(changelog=False), HOST_PATH)
+        assert not offences, "a path into the host this came from:\n" + "\n".join(offences)
+
+    def test_no_decision_record_is_cited(self):
+        offences = _line_offences(_markdown_files(changelog=False), CITATION)
+        assert not offences, "a citation of a record this package's readers cannot open:\n" + "\n".join(offences)
+
+    def test_no_private_document_is_named(self):
+        offences = _line_offences(_markdown_files(changelog=False), PRIVATE_DOC)
+        assert not offences, "a document only the host repository holds:\n" + "\n".join(offences)
+
+    def test_the_former_name_is_gone(self):
+        offences = _line_offences(_markdown_files(changelog=False), FORMER_NAME)
+        assert not offences, "the name this was published under before:\n" + "\n".join(offences)
+
+    def test_no_scar_survives(self):
+        offences = _markdown_scar_offences(_markdown_files(changelog=False))
+        assert not offences, "the redaction left the sentence broken:\n" + "\n".join(offences)
+
+    def test_each_planted_document_is_caught(self):
+        """The same controls as above, written the way a document writes them."""
+        assert _word_offences([("planted.md", "The blackboard holds it.")])
+        assert _line_offences([("planted.md", "See domains/memory.py.")], HOST_PATH)
+        assert _line_offences([("planted.md", "Settled in ADR-0123.")], CITATION)
+        assert _line_offences([("planted.md", "Listed in docs/backlog.md.")], PRIVATE_DOC)
+        assert _line_offences([("planted.md", "`render_doxa` is gone.")], FORMER_NAME)
+        assert _markdown_scar_offences([("planted.md", "The revision target (§2.10) is picked.")])
+
+    def test_a_fenced_block_is_not_prose(self):
+        """An example calling ``p()`` is code, and its parentheses are meant to be empty."""
+        fenced = "Before.\n\n```python\nassert p() == ()\n```\n\nAfter."
+        assert not _markdown_scar_offences([("planted.md", fenced)])
+
+    def test_a_fenced_block_does_not_shift_the_line_numbers(self):
+        """Blanked rather than dropped, so a failure is reported where it sits."""
+        text = "Alpha.\n\n```python\nx = 1\ny = 2\n```\n\nthe beliefs's own reader"
+        (offence,) = _markdown_scar_offences([("planted.md", text)])
+        assert offence.startswith("planted.md:8:"), offence
+
+    def test_the_changelog_is_the_only_exemption(self):
+        swept = {name for name, _ in _markdown_files()}
+        pointed = {name for name, _ in _markdown_files(changelog=False)}
+        assert swept - pointed == {POINTER_EXEMPT}
+
+    def test_the_exemption_is_load_bearing(self):
+        """If the log stops needing it, the carve-out should go rather than sit."""
+        changelog = [(POINTER_EXEMPT, (ROOT / POINTER_EXEMPT).read_text(encoding="utf-8"))]
+        assert _line_offences(changelog, CITATION), "the log no longer quotes what the rule forbids"
+        assert not _word_offences(changelog), "the exemption does not reach host vocabulary"

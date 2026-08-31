@@ -22,6 +22,8 @@ fof_annotated: "fof" "(" NAME "," ROLE "," fof_formula ")" "."
 ?fof_atomic_formula: fof_term "=" fof_term -> eq_expr
     | fof_term "!=" fof_term -> neq_expr
     | plain_term -> pred_expr
+    | TRUE -> true_expr
+    | FALSE -> false_expr
 
 ?fof_term: plain_term -> term_expr
     | VAR -> var_expr
@@ -32,6 +34,10 @@ plain_term: FUNCTOR "(" term_list ")" -> app_term
 var_list: VAR ("," VAR)*
 
 term_list: fof_term ("," fof_term)*
+
+TRUE: "$true"
+
+FALSE: "$false"
 
 ROLE: LOWER_WORD
 

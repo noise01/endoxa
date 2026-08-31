@@ -86,11 +86,48 @@ pip install "endoxa[trace]"     # the ordered series of an agent's propositions
 pip install "endoxa[coverage]"  # how densely rules connect predicates
 ```
 
+## What this is not
+
+- **Not a reasoner.** endoxa does not decide whether a claim is true. You hand it
+  beliefs and the rules they live under, and it answers whether they can hold
+  together and what to give up when they cannot. Where the beliefs came from is
+  your side of the line — it makes no model calls and reads no context.
+- **Not a knowledge base.** The ledger is the record of one agent's beliefs over
+  a run: small enough to fold in memory, ordered because the order is what makes
+  it a history. There is no query language and no index, and where storage
+  appears at all it is a Protocol for you to implement — no backend ships here.
+  To ask what the world contains, this is the wrong shape; to ask what this agent
+  committed to and when it stopped, it is the right one.
+- **Not a general-purpose SMT solver.** The bundled one answers a single question
+  on the fragment that question needs. Z3 is faster, more complete, and decides
+  theories this has never heard of — arithmetic, arrays, bitvectors — and if
+  solving is the job you have, that is the tool for it. This one is here because
+  it arrives with `pip`, and because its verdicts land in the same ledger as
+  everything else.
+- **Not a new idea.** Truth maintenance is Doyle, 1979; the assumption-based
+  version is de Kleer, 1986; defeasible reasoning has decades behind it, and the
+  hard questions were asked long before this was written. What is here is that
+  machinery given a ledger, calibration instruments, and a surface an agent loop
+  can call. If you know TMS, you already know the middle of this.
+- **Not measured against the alternative.** There is no benchmark here, and no
+  claim that an agent using this is more consistent, better calibrated, or more
+  anything than one that is not. That would take an experiment, and there is not
+  one to point at. What *is* checked is narrower and duller: that the solver
+  agrees with Z3 where both are complete, that the ledger folds to the view it
+  reports, that the examples do what they say. Those live in the test suite, and
+  they are the claims this makes.
+
 ## Design notes
 
 - **The solver is bundled and frozen.** endoxa answers about consistency without
-  reaching for an external prover. Its correctness is asserted differentially
-  against Z3 in dev-only tests rather than by its own suite alone.
+  reaching for an external prover. Its verdicts are checked against Z3's over
+  generated formulas in two fragments — propositional, and equality with
+  uninterpreted functions — chosen because both solvers are *complete* on them, so
+  a disagreement is a bug rather than an artefact of one giving up first.
+  Quantifier instantiation sits outside that on purpose: it is anytime, and
+  answers `UNKNOWN` when its budget runs out, which is a correct answer and not
+  one a verdict comparison can score. That part has ordinary tests instead. The
+  differential needs Z3, which is a dev dependency and is not shipped.
 - **The ledger is the record, not a cache.** Operations are appended; the current
   view is folded from them. An unsettleable conflict appears in that view as
   `UNRESOLVED` rather than as a silent choice.
