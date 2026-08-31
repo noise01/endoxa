@@ -1,6 +1,6 @@
 [project]
 name = "endoxa"
-version = "0.3.0"
+version = "0.4.0"
 description = "Governed beliefs for LLM agents: an append-only ledger, SMT-checked consistency, defeasible revision, and calibration instruments."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -50,6 +50,12 @@ dev = [
     "pytest>=9.0.3",
     # The trace store is an async port, so its contract test needs an async runner.
     "pytest-asyncio>=1.3.0",
+    # 6.0.3 is the first release with a wheel for this Python. Older ones fall
+    # back to building from source and fail there, which the `floor` CI job
+    # found the day this was added -- the bound below was written without
+    # checking, and the job exists for exactly that.
+    "pytest-cov>=7.0",
+    "pyyaml>=6.0.3",
     "ruff>=0.15.17",
     # The solver's correctness is asserted against Z3 by differential tests, not
     # by its own test suite alone.
@@ -110,6 +116,32 @@ ignore = [
     "S311", # seeded pseudo-random generation is the point of the harness, not crypto
     "SLF001",
 ]
+
+[tool.coverage.run]
+source = ["src/endoxa"]
+# Branch coverage, not line. A line that runs is not a line whose alternatives
+# ran, and this package is mostly branches -- a solver, a revision preference, a
+# fold with seven operations. The difference here is only two points, which is
+# itself worth knowing.
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = true
+# A ratchet against a drop worth noticing, not a lock on the figure. Two things
+# keep it below what a run reports:
+#
+# - Part of the suite is a random sweep, so the number moves run to run. Measured
+#   over four runs: 86.63, 87.41, 87.39, 87.39 -- a spread of 0.78. A floor set at
+#   the number seen would fail on an unlucky Tuesday, which is how a ratchet earns
+#   a reputation for noise and then gets deleted.
+# - A refactor that moves the denominator by a statement is not a coverage
+#   regression and should not read as one.
+#
+# So: below the low end of the observed range, not below the mean. Raise it when
+# the range clears the next whole point; lowering it means writing down why.
+fail_under = 85
 
 [tool.mypy]
 # Scoped to the shipped package. The tests carry deliberate looseness -- untyped

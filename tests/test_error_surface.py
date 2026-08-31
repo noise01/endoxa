@@ -114,4 +114,4 @@ class TestTheParserDoesNotReachThrough:
                 )
                 if any(name.split(".")[0] == "lark" for name in imported):
                     importers.append(path.relative_to(ROOT).as_posix())
-        assert sorted(set(importers)) == ["src/endoxa/solver/parsers/tptp.py"], importers
+        assert sorted(set(importers)) == ["src/endoxa/solver/parsers/_grammar.py"], importers
