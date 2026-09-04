@@ -23,6 +23,9 @@ store.
   ordering, and the detection of a conflict that cannot be settled from inside.
 - :mod:`~endoxa.governance.knowledge` names where a belief sits relative to the
   knowledge boundary.
+- :mod:`~endoxa.governance.provenance` fixes the names for where a belief came
+  from, and separately for what brought it back into view. It decides nothing;
+  which name applies is the host's to say.
 
 The submodules are residents of this namespace rather than flattened into it.
 What ``__all__`` exports is the API: the ledger schema, the derived view, and the
@@ -44,6 +47,11 @@ from endoxa.governance.ledger import (
     SupportKind,
     SupportRef,
     TargetKind,
+)
+from endoxa.governance.provenance import (
+    PROVENANCE_KEYS,
+    RETRIEVAL_KINDS,
+    SOURCE_KINDS,
 )
 from endoxa.governance.resolution import (
     GOVERNANCE_ACTOR,
@@ -88,11 +96,14 @@ __all__ = [
     "LEDGER_EVENT_TYPES",
     "LEDGER_OPS",
     "OUT",
+    "PROVENANCE_KEYS",
     "REASON_REASSERTION",
     "REASON_REVISION_SURVIVED",
     "REASON_RULE_RETRACTED",
     "REASON_SUPPORT_LOST",
     "RETRACTED_RULE_CONFIDENCE",
+    "RETRIEVAL_KINDS",
+    "SOURCE_KINDS",
     "UNRESOLVED",
     "UNSUPPORTED",
     "Belief",

@@ -8,6 +8,28 @@ not a promise.
 
 ### Added
 
+- **`governance.provenance` is back, exported, and tested — the names only.**
+  0.2.0 removed it under a rule worth keeping: exported by nothing, imported by
+  nothing, tested by nothing, 118 lines on no execution path. Two of those three
+  were true from in here and false outside. The consumer these names were written
+  for is a private host this package cannot see, so "imported by nothing" meant
+  "by nothing visible" — thirteen call sites, as it turns out — and the unit
+  tests existed the whole time, over there, where they could not count. The half
+  that was true without qualification is that `__all__` never exported it, and a
+  name outside the API is a name nobody here has a reason to keep. So the return
+  comes with the two things the deletion rule actually reads: `SOURCE_KINDS`,
+  `RETRIEVAL_KINDS` and `PROVENANCE_KEYS` are exported from `endoxa.governance`,
+  and `tests/governance/test_provenance.py` holds them.
+
+  What did **not** come back is the mapping from a host's write roles onto these
+  names. It read words like `conjecture` and `observation` that belong to one
+  host's schema, and a package that cannot see its consumers has no business
+  holding a vocabulary belonging to one of them. The module's own line already
+  said as much — fixing the names is its whole job, and deciding which one
+  applies is the host's. The split is that sentence applied to the module
+  itself, and a test asserts the module stayed data, so putting the mapping back
+  would be a decision rather than a drift.
+
 - **A "What this is not" section in the README.** Five things this is not: a
   reasoner, a knowledge base, a general-purpose SMT solver, a new idea, or
   measured against the alternative. The last is the point of the section — there
