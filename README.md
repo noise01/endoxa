@@ -13,7 +13,7 @@ Callers own adopted membership, confidence updates, history, storage, and applic
 
 ## Import boundaries
 
-Use `endoxa.governance` for Assertion-based inputs, result types, checks, and
+Use `endoxa.governance` for input validators, Assertion-based inputs, result types, checks, and
 revision proposals. `Assumption` and `ConsistencyResult` are the actual result
 type names; they are not aliases of the former Belief-based records. Their
 definitions live in `endoxa.governance.results`, with one recommended import
@@ -55,6 +55,42 @@ duplicate IDs within a kind are errors. Changing content or polarity requires a
 new ID. A confidence update is a new input snapshot supplied by the caller.
 Confidence must be finite in [0, 1], excluding Boolean values. Source is an optional
 nonempty string and does not select a policy.
+
+### Validating individual inputs
+
+Callers can validate inputs before constructing an `Assertion` using the same
+functions that its constructor uses:
+
+```python
+from endoxa.governance import canonical_atom, validate_confidence, validate_id
+
+assert canonical_atom(" p( a , b ) ") == "p(a,b)"
+assert validate_id(" id ") is None  # Accepted as-is; Assertion retains the spaces.
+assert validate_confidence(0.0) is None
+assert validate_confidence(1) is None
+```
+
+- `canonical_atom(text: str) -> str` returns a flat ground atom with whitespace
+  removed. It accepts bare propositions (`ready`) and predicates with one or more
+  simple arguments (`p(a,b)`). Each name starts with an ASCII lowercase letter,
+  followed by ASCII letters, digits, or underscores. Whitespace is allowed around
+  the atom and arguments, but not between the predicate name and `(`.
+  Variables (`p(X)`), empty argument lists (`p()`), nested terms (`p(f(a))`),
+  formulas, and non-string inputs raise `endoxa.errors.RuleSyntaxError`.
+- `validate_id(value: str) -> None` accepts strings with at least one
+  non-whitespace character. It does not normalize or return an ID. Empty strings,
+  whitespace-only strings, and non-strings raise `endoxa.errors.InvalidArgumentError`.
+- `validate_confidence(value: float) -> None` accepts finite `int` and `float`
+  values in the inclusive range [0, 1], without conversion. Booleans, NaN,
+  infinities, other types, and out-of-range numbers raise
+  `endoxa.errors.InvalidArgumentError`.
+
+These validators check individual values. Source categories, stance, ownership
+policy, and saved-history replay belong to callers. Exception types and the
+behavior above are public contracts; exact error messages, validation order,
+and internal module structure are not.
+
+### Premise sets and checks
 
 `Rule(id, formula, confidence)` has keyword fields and a closed FOF premise string.
 Its ID is independent of an Assertion ID. `PremiseSet` contains `assertions`,
