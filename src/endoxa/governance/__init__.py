@@ -1,5 +1,6 @@
 """Check adopted premises and propose verified changes; callers own their state."""
 
+from endoxa.governance._validation import canonical_atom, validate_confidence, validate_id
 from endoxa.governance.checks import (
     check_consistency,
     check_entailment,
@@ -37,6 +38,7 @@ __all__ = [
     "SolverStatus",
     "Target",
     "Withdraw",
+    "canonical_atom",
     "check_consistency",
     "check_entailment",
     "check_support",
@@ -44,4 +46,6 @@ __all__ = [
     "parse_query_fof",
     "propose_revision",
     "target_of",
+    "validate_confidence",
+    "validate_id",
 ]
